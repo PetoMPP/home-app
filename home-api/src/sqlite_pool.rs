@@ -1,4 +1,4 @@
-use crate::Sensor;
+use crate::models::Sensor;
 use deref_derive::{Deref, DerefMut};
 use r2d2_sqlite::SqliteConnectionManager;
 

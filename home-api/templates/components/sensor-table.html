@@ -1,0 +1,12 @@
+{% block content %}
+<table class="table table-zebra">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Features</th>
+        </tr>
+    </thead>
+    <tbody hx-get="/sensors" hx-trigger="load" hx-swap="innerHTML">
+    </tbody>
+</table>
+{% endblock %}

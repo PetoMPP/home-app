@@ -1,33 +1,27 @@
-use crate::Sensor;
-use yew::prelude::*;
+use crate::{models::Sensor, sqlite_pool::SqlitePool};
+use askama::Template;
+use axum::{http::StatusCode, response::Html, Extension};
 
-#[derive(Properties, Clone, PartialEq)]
-pub struct HomeProps {
+#[derive(Template)]
+#[template(path = "home.html")]
+pub struct HomeTemplate;
+
+pub async fn home() -> Html<String> {
+    Html(HomeTemplate.render().unwrap())
+}
+
+#[derive(Template)]
+#[template(path = "components/sensor-rows.html")]
+pub struct SensorRowsTemplate {
     pub sensors: Vec<Sensor>,
 }
 
-#[function_component(Home)]
-pub fn home(props: &HomeProps) -> Html {
-    html! {
-        <div class={"flex-col"}>
-            <h1 class={"text-2xl pb-4"}>{"Welcome to Home API!"}</h1>
-            <p class={"text-xl"}> {"Here are the sensors available:"}</p>
-            <table class={"table table-zebra"}>
-                <thead>
-                    <tr>
-                        <th>{"ID"}</th>
-                        <th>{"Features"}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    { for props.sensors.iter().map(|sensor| html! {
-                        <tr>
-                            <td>{&sensor.id}</td>
-                            <td>{sensor.features}</td>
-                        </tr>
-                    }) }
-                </tbody>
-            </table>
-        </div>
-    }
+pub async fn get_sensors(
+    Extension(pool): Extension<SqlitePool>,
+) -> Result<Html<String>, StatusCode> {
+    let sensors = pool
+        .get_sensors()
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    Ok(Html(SensorRowsTemplate { sensors }.render().unwrap()))
 }
