@@ -15,6 +15,7 @@ impl WebappService for axum::Router {
             .route("/sensors", get(get_sensors))
             .fallback(not_found)
             .nest_service("/output.css", ServeFile::new("output.css"))
+            .nest_service("/htmx.min.js", ServeFile::new("htmx.min.js"))
     }
 }
 
