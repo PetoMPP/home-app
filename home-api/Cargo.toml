@@ -6,9 +6,12 @@ edition = "2021"
 [dependencies]
 askama = "0.12.1"
 axum = "0.7.5"
+chrono = { version = "0.4", features = ["serde"] }
 deref-derive = "0.1.0"
+pnet = "0.35.0"
 r2d2_sqlite = { version = "0.24", features = ["bundled"] }
 r2d2 = "0.8"
+reqwest = { version = "0.12", features = ["json"] }
 serde = "1.0"
 serde_derive = "1.0"
 tokio = { version = "1.38", features = ["full"] }

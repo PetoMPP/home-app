@@ -1,7 +1,7 @@
+use askama::Template;
 use axum::{http::StatusCode, response::Html, routing::get};
 use home::{get_sensors, home};
 use tower_http::services::ServeFile;
-use askama::Template;
 
 mod home;
 
@@ -9,7 +9,10 @@ pub trait WebappService {
     fn register_webapp(self) -> Self;
 }
 
-impl WebappService for axum::Router {
+impl<S> WebappService for axum::Router<S>
+where
+    S: Clone + Send + Sync + 'static,
+{
     fn register_webapp(self) -> Self {
         self.route("/", axum::routing::get(home))
             .route("/sensors", get(get_sensors))
