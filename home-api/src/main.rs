@@ -1,4 +1,8 @@
-use axum::{extract::State, routing::{get, post}, Extension, Router};
+use axum::{
+    extract::State,
+    routing::{get, post},
+    Extension, Router,
+};
 use r2d2_sqlite::SqliteConnectionManager;
 use services::scanner_service::ScannerService;
 use sqlite_pool::SqlitePool;
@@ -23,12 +27,16 @@ async fn main() {
     scanner.init().await;
     let scanner = Mutex::new(scanner);
     let scanner = Arc::new(scanner);
-    let app = Router::new()
+    let mut app = Router::new()
         .register_webapp()
         .route("/api/v1/scanner/collect", get(scanner_collect))
         .route("/api/v1/scanner/init", post(scanner_init))
         .layer(Extension(pool))
         .with_state(scanner);
+    #[cfg(debug_assertions)]
+    {
+        app = app.layer(tower_livereload::LiveReloadLayer::new());
+    }
 
     // run our app with hyper, listening globally on port 3000
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
