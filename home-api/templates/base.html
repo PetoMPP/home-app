@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script src="https://unpkg.com/htmx.org@1.9.6"
+        integrity="sha384-FhXw7b6AlE/jyjlZH5iHa/tTe9EpJ1Y55RjcgPbjeWMskSxZt1v9qkxLJWNJaGni"
+        crossorigin="anonymous"></script>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Montserrat" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto+Mono" />
+    <link rel="stylesheet" href="output.css" />
+    <title>Home API</title>
+    {% block head %}
+    {% endblock %}
+</head>
+
+<body class="flex flex-col min-h-[100vh]">
+    <div class="sticky top-0 z-50 w-full bg-base-200 opacity-90 p-2 pb-4">
+        <a href="/" class="text-4xl font-bold btn-ghost">Home API</a>
+    </div>
+    <div class="mx-auto w-full lg:w-4/6 h-full justify-center py-6">
+        <div class="mx-auto w-full lg:w-4/6 h-full flex flex-col gap-2 justify-center p-2">
+
+            {% block content %}
+            {% endblock %}
+        </div>
+    </div>
+</body>
+
+</html>

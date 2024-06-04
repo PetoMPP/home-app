@@ -1,9 +1,9 @@
 use axum::{Extension, Router};
 use r2d2_sqlite::SqliteConnectionManager;
-use serde_derive::{Deserialize, Serialize};
 use sqlite_pool::SqlitePool;
 use website::WebappService;
 
+mod models;
 mod sqlite_pool;
 mod website;
 
@@ -20,10 +20,4 @@ async fn main() {
     // run our app with hyper, listening globally on port 3000
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     axum::serve(listener, app).await.unwrap();
-}
-
-#[derive(Serialize, Deserialize, Clone, PartialEq)]
-struct Sensor {
-    id: String,
-    features: u32,
 }

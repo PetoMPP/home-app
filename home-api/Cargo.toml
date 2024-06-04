@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+askama = "0.12.1"
 axum = "0.7.5"
 deref-derive = "0.1.0"
 r2d2_sqlite = { version = "0.24", features = ["bundled"] }
@@ -14,4 +15,3 @@ tokio = { version = "1.38", features = ["full"] }
 tower = "0.4.13"
 tower-http = { version = "0.5.2", features = ["fs", "trace"] }
 tracing-subscriber = "0.3"
-yew = { version = "0.21.0", features = ["ssr"] }
