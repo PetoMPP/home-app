@@ -1,0 +1,9 @@
+<div class="flex items-center justify-between pb-4">
+    <p>Scanner is scanning network addresses on {{progress.target}}x</p>
+    <a class="btn btn-error" hx-post="/scan/cancel" hx-trigger="click" hx-swap="innerHTML"
+        hx-target="#scanner-inner">Cancel</a>
+</div>
+<div class="flex w-full justify-center">
+    <div class="radial-progress bg-primary text-primary-content border-4 border-primary" style={{progress.style()}}
+        role="progressbar">{{progress.text()}}</div>
+</div>

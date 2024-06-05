@@ -2,6 +2,19 @@
 
 {% block content %}
 <h1 class="text-2xl pb-4">Welcome to Home API!</h1>
-<p class="text-xl">Here are the sensors available:</p>
+<div class="flex flex-row justify-between align-center">
+    <p class="text-xl">Here are the sensors available:</p>
+    <a class="btn btn-primary" hx-get="/sensors" hx-trigger="click" hx-target="#sensor-table-body"
+        hx-on::before-request="clear_rows(this)" hx-on::after-request="this.className = 'btn btn-primary'">Refresh</a>
+</div>
+<script>
+    function clear_rows(el) {
+        el.className = 'btn btn-disabled';
+        var children = document.getElementById('sensor-table-body').children;
+        for (var i = children.length - 1; i > 0; i--) {
+            children[i].remove();
+        }
+    }
+</script>
 {% include "components/sensor-table.html" %}
 {% endblock %}

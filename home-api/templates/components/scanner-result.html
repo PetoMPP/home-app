@@ -1,0 +1,14 @@
+<div class="flex items-center justify-between pb-4">
+    {% match result %}
+    {% when Some with (result) %}
+    <p>Sensor data fetched at: {{ result.created_display()}}</p>
+    {% when None %}
+    <p>No sensor data fetched yet</p>
+    {% endmatch %}
+    <a class="btn btn-primary" hx-post="/scan" hx-trigger="click" hx-swap="innerHTML" hx-target="#scanner-inner">Scan
+        now!</a>
+</div>
+{% if let Some(result) = result %}
+{% let sensors = result.sensors.clone() %}
+{% include "components/sensor-table.html" %}
+{% endif %}
