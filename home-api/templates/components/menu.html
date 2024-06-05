@@ -1,5 +1,11 @@
-<ul class="menu p-4 lg:w-80 w-60 min-h-full bg-base-200 z-10 gap-2">
+<ul class="menu p-4 lg:w-80 w-60 min-h-full bg-base-200 z-10 gap-2"
+    hx-on::after-request="document.getElementById('menu-drawer').click()">
     <h2 class="text-2xl font-semibold pb-4">Menu</h2>
-    <li><a class="bg-neutral text-neutral-content" href="/">Home</a></li>
-    <li><a class="bg-neutral text-neutral-content" href="/scanner">Scanner</a></li>
+    <li>
+        <a class="bg-neutral text-neutral-content" hx-get="/" hx-push-url="true" hx-target="#page-content"
+            hx-swap="innerHtml">Home</a>
+    </li>
+    <li><a class="bg-neutral text-neutral-content" hx-get="/scanner" hx-push-url="true" hx-target="#page-content"
+            hx-swap="innerHtml">Scanner</a>
+    </li>
 </ul>

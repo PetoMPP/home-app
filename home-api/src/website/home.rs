@@ -1,19 +1,35 @@
 use crate::{models::Sensor, sqlite_pool::SqlitePool};
 use askama::Template;
-use axum::{http::StatusCode, response::Html, Extension};
+use axum::{
+    http::{HeaderMap, StatusCode},
+    response::Html,
+    Extension,
+};
 
-#[derive(Template, Default)]
+#[derive(Template)]
 #[template(path = "pages/home.html")]
 pub struct HomeTemplate {
     pub sensors: Vec<Sensor>,
 }
 
-pub async fn home(Extension(pool): Extension<SqlitePool>) -> Result<Html<String>, StatusCode> {
+#[derive(Template)]
+#[template(path = "pages/home-inner.html")]
+pub struct HomeInnerTemplate {
+    pub sensors: Vec<Sensor>,
+}
+
+pub async fn home(
+    Extension(pool): Extension<SqlitePool>,
+    headers: HeaderMap,
+) -> Result<Html<String>, StatusCode> {
     let sensors = pool
         .get_sensors()
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    Ok(Html(HomeTemplate { sensors }.render().unwrap()))
+    match headers.contains_key("Hx-Request") {
+        true => Ok(Html(HomeInnerTemplate { sensors }.render().unwrap())),
+        false => Ok(Html(HomeTemplate { sensors }.render().unwrap())),
+    }
 }
 
 #[derive(Template)]
