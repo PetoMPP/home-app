@@ -1,8 +1,9 @@
 use crate::models::Sensor;
+use serde_derive::{Deserialize, Serialize};
 use std::{sync::Arc, time::Duration};
 use tokio::{sync::Mutex, task::JoinHandle};
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ScanProgress {
     pub progress: u32,
     pub total: u32,

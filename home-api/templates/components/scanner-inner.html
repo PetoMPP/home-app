@@ -1,11 +1,13 @@
-{% match state %}
-{% when ScannerState::Idle with (result)%}
-{% include "components/scanner-result.html" %}
+<div id="scanner-inner">
+    {% match state %}
+    {% when ScannerState::Idle with (result)%}
+    {% include "components/scanner-result.html" %}
 
-{% when ScannerState::Scanning with (progress) %}
-{% include "components/scanner-progress.html" %}
+    {% when ScannerState::Scanning with (progress) %}
+    {% include "components/scanner-progress.html" %}
 
-{% when ScannerState::Error with (error) %}
-<p>Error: {{ error }}</p>
+    {% when ScannerState::Error with (error) %}
+    <p>Error: {{ error }}</p>
 
-{% endmatch %}
+    {% endmatch %}
+</div>
