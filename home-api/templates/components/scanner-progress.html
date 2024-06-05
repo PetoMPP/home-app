@@ -2,7 +2,7 @@
 <div class="flex flex-col gap-6 justify-between">
     {% include "components/scanner-progress-status.html" %}
     <div class="flex justify-end">
-        <a class="btn btn-error" hx-post="/scan/cancel" hx-trigger="click" hx-swap="innerHTML"
+        <a class="btn btn-error" hx-post="/scan/cancel" hx-trigger="click" hx-swap="outerHTML"
             hx-target="#scanner-inner">Cancel</a>
     </div>
 </div>

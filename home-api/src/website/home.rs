@@ -3,7 +3,7 @@ use askama::Template;
 use axum::{http::StatusCode, response::Html, Extension};
 
 #[derive(Template, Default)]
-#[template(path = "home.html")]
+#[template(path = "pages/home.html")]
 pub struct HomeTemplate {
     pub sensors: Vec<Sensor>,
 }
