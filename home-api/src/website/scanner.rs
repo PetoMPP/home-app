@@ -4,8 +4,7 @@ use axum::{
     extract::{
         ws::{Message, WebSocket},
         ConnectInfo, State, WebSocketUpgrade,
-    },
-    response::{Html, IntoResponse},
+    }, http::HeaderMap, response::{Html, IntoResponse}
 };
 use std::{net::SocketAddr, sync::Arc};
 use tokio::sync::Mutex;
@@ -16,20 +15,21 @@ pub struct ScannerTemplate {
     pub state: ScannerState,
 }
 
-pub async fn scanner(State(scanner): State<Arc<Mutex<ScannerService>>>) -> Html<String> {
-    Html(
-        ScannerTemplate {
-            state: scanner.lock().await.state().await,
-        }
-        .render()
-        .unwrap(),
-    )
-}
-
 #[derive(Template)]
 #[template(path = "pages/scanner-inner.html")]
 pub struct ScannerInnerTemplate {
     pub state: ScannerState,
+}
+
+pub async fn scanner(
+    State(scanner): State<Arc<Mutex<ScannerService>>>,
+    headers: HeaderMap,
+) -> Html<String> {
+    let state = scanner.lock().await.state().await;
+    match headers.contains_key("Hx-Request") {
+        true => Html(ScannerInnerTemplate { state }.render().unwrap()),
+        false => Html(ScannerTemplate { state }.render().unwrap()),
+    }
 }
 
 pub async fn scan(State(scanner): State<Arc<Mutex<ScannerService>>>) -> Html<String> {
@@ -87,7 +87,13 @@ async fn handle_status_socket(
                 let state = scanner.lock().await.state().await;
                 let msg = match &state {
                     ScannerState::Idle(_) | ScannerState::Error(_) => {
-                        if socket.send(Message::Text(ScannerInnerTemplate { state }.render().unwrap())).await.is_err() {
+                        if socket
+                            .send(Message::Text(
+                                ScannerInnerTemplate { state }.render().unwrap(),
+                            ))
+                            .await
+                            .is_err()
+                        {
                             break;
                         }
                         let _ = socket.send(Message::Close(None)).await;
