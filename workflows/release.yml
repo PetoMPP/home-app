@@ -1,0 +1,56 @@
+name: "Release"
+
+on:
+  push:
+    branches:
+      - "release/**"
+    paths:
+      - "src/**"
+      - "templates/**"
+      - "assets/**"
+      - "build.rs"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "home-api.db"
+      - "input.css"
+      - "package.json"
+      - "package-lock.json"
+      - "tailwind.config.js"
+
+jobs:
+  release-arm64:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{github.event.repository.name}}/home-api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-unknown-linux-gnu
+
+      - name: Setup Node.js 
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'npm'
+          cache-dependency-path: ./package-lock.json
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install npx
+        run: npm install npx
+
+      - run: cargo build --release --target aarch64-unknown-linux-gnu
+      
+      - uses: actions/upload-artifact@v4
+        with:
+          name: home-api-arm64
+
+          # A file, directory or wildcard pattern that describes what to upload
+          # Required.
+          path: |
+            target/aarch64-unknown-linux-gnu/release/home-api
+            target/aarch64-unknown-linux-gnu/release/home-api.db
+

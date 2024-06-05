@@ -7,7 +7,7 @@ use services::scanner_service::ScannerService;
 use sqlite_pool::SqlitePool;
 use std::{net::SocketAddr, sync::Arc};
 use tokio::sync::Mutex;
-use tower_http::{services::ServeFile, trace::TraceLayer};
+use tower_http::{services::ServeDir, trace::TraceLayer};
 
 mod models;
 mod services;
@@ -40,10 +40,7 @@ async fn main() {
         .route("/scan/cancel", post(website::scanner::cancel))
         .route("/scan/status", get(website::scanner::status_ws))
         .fallback(website::not_found)
-        .nest_service("/output.css", ServeFile::new("output.css"))
-        .nest_service("/htmx.min.js", ServeFile::new("htmx.min.js"))
-        .nest_service("/loading-states.js", ServeFile::new("loading-states.js"))
-        .nest_service("/ws.js", ServeFile::new("ws.js"))
+        .nest_service("/assets", ServeDir::new("assets"))
         .layer(Extension(pool))
         .with_state(scanner)
         .layer(TraceLayer::new_for_http());
