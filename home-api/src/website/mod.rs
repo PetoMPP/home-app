@@ -5,7 +5,7 @@ pub mod home;
 pub mod scanner;
 
 #[derive(Template)]
-#[template(path = "error.html")]
+#[template(path = "pages/error.html")]
 pub struct ErrorTemplate {
     pub status: StatusCode,
     pub message: String,

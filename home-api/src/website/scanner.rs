@@ -11,7 +11,7 @@ use std::{net::SocketAddr, sync::Arc};
 use tokio::sync::Mutex;
 
 #[derive(Template)]
-#[template(path = "scanner.html")]
+#[template(path = "pages/scanner.html")]
 pub struct ScannerTemplate {
     pub state: ScannerState,
 }
@@ -27,7 +27,7 @@ pub async fn scanner(State(scanner): State<Arc<Mutex<ScannerService>>>) -> Html<
 }
 
 #[derive(Template)]
-#[template(path = "components/scanner-inner.html")]
+#[template(path = "pages/scanner-inner.html")]
 pub struct ScannerInnerTemplate {
     pub state: ScannerState,
 }

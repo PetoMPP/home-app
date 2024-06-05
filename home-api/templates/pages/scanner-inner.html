@@ -1,4 +1,5 @@
 <div id="scanner-inner">
+    <h1 class="text-3xl font-bold pb-6">Scanner page</h1>
     {% match state %}
     {% when ScannerState::Idle with (result)%}
     {% include "components/scanner-result.html" %}
