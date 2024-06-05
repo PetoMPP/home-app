@@ -16,16 +16,15 @@ module.exports = {
   daisyui: {
     themes: [
       {
-        bumblebee: {
-          ...require("daisyui/src/theming/themes")["bumblebee"],
+        nord: {
+          ...require("daisyui/src/theming/themes")["nord"],
         },
-        coffee: {
-          ...require("daisyui/src/theming/themes")["coffee"],
-          "primary": "#38bdf8"
+        dark: {
+          ...require("daisyui/src/theming/themes")["dark"],
         },
       }
     ],
-    darkTheme: "coffee",
+    darkTheme: "dark",
   },
 }
 

@@ -1,4 +1,3 @@
-{% block content %}
 <table class="table table-zebra">
     <thead>
         <tr>
@@ -6,7 +5,7 @@
             <th>Features</th>
         </tr>
     </thead>
-    <tbody hx-get="/sensors" hx-trigger="load" hx-swap="innerHTML">
+    <tbody id="sensor-table-body">
+        {% include "components/sensor-rows.html" %}
     </tbody>
 </table>
-{% endblock %}
