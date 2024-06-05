@@ -1,0 +1,6 @@
+<div id="scan-progress-status" class="flex flex-col">
+    <p class="pb-4">Scanner is scanning network addresses on <strong>{{progress.target}}x</strong>.</p>
+    <div class="radial-progress text-accent self-center" style={{progress.style()}} role="progressbar">
+        <p class="text-base-content">{{progress.text()}}</p>
+    </div>
+</div>
