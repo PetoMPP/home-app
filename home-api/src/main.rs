@@ -16,6 +16,10 @@ mod website;
 
 #[tokio::main]
 async fn main() {
+    // workaround for running the app from the root of the workspace
+    if std::env::current_dir().unwrap().ends_with("home-app") {
+        std::env::set_current_dir("home-api").unwrap();
+    }
     // initialize tracing
     #[cfg(debug_assertions)]
     tracing_subscriber::fmt()
