@@ -540,6 +540,7 @@ dependencies = [
  "axum",
  "chrono",
  "deref-derive",
+ "home-models",
  "openssl",
  "pnet",
  "r2d2",
@@ -553,6 +554,14 @@ dependencies = [
  "tower-livereload",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "home-models"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_derive",
 ]
 
 [[package]]

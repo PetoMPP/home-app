@@ -1,10 +1,11 @@
-use crate::{models::Sensor, sqlite_pool::SqlitePool};
+use crate::sqlite_pool::SqlitePool;
 use askama::Template;
 use axum::{
     http::{HeaderMap, StatusCode},
     response::Html,
     Extension,
 };
+use home_models::models::Sensor;
 
 #[derive(Template)]
 #[template(path = "pages/home.html")]

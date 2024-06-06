@@ -9,7 +9,6 @@ use std::{net::SocketAddr, sync::Arc};
 use tokio::sync::Mutex;
 use tower_http::{services::ServeDir, trace::TraceLayer};
 
-mod models;
 mod services;
 mod sqlite_pool;
 mod website;

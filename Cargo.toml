@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "home-api",
+    "home-api", "home-models",
 ]
 resolver = "2"
 
