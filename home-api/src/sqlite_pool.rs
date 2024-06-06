@@ -1,6 +1,6 @@
-use crate::models::Sensor;
 use deref_derive::{Deref, DerefMut};
 use r2d2_sqlite::SqliteConnectionManager;
+use home_models::prelude::Sensor;
 
 #[derive(Clone, Deref, DerefMut)]
 pub struct SqlitePool(pub r2d2::Pool<SqliteConnectionManager>);

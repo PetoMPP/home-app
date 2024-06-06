@@ -1,4 +1,4 @@
-use crate::models::Sensor;
+use home_models::models::Sensor;
 use serde_derive::{Deserialize, Serialize};
 use std::{sync::Arc, time::Duration};
 use tokio::{sync::Mutex, task::JoinHandle};

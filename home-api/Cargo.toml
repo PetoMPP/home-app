@@ -8,6 +8,7 @@ axum = { version = "0.7.5", features = ["ws"] }
 askama = "0.12.1"
 chrono = { version = "0.4", features = ["serde"] }
 deref-derive = "0.1.0"
+home-models = { path = "../home-models" }
 pnet = "0.35.0"
 r2d2_sqlite = { version = "0.24", features = ["bundled"] }
 r2d2 = "0.8"
