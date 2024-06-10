@@ -70,39 +70,44 @@ impl WifiConnectionBuilder<'_> {
         let (iface, device, mut controller, sockets) =
             create_network_interface(&init, wifi, WifiStaDevice, storage).unwrap();
 
-        let mut auth_method = AuthMethod::WPA2Personal;
-        if PASSWORD.is_empty() {
-            auth_method = AuthMethod::None;
-        }
-
-        let client_config = Configuration::Client(ClientConfiguration {
-            ssid: SSID.try_into().unwrap(),
-            password: PASSWORD.try_into().unwrap(),
-            auth_method,
-            ..Default::default()
-        });
-
-        let res = controller.set_configuration(&client_config);
-        log::info!("Wi-Fi set_configuration returned {:?}", res);
-
         controller.start().unwrap();
         log::info!("Is wifi started: {:?}", controller.is_started());
 
+        let delay = Delay::new(self.clocks);
         log::info!("Start Wifi Scan");
-        let res: Result<(heapless::Vec<AccessPointInfo, 10>, usize), WifiError> =
-            controller.scan_n();
-        if let Ok((res, _count)) = res {
-            for ap in res {
-                log::info!("{:?}", ap);
+        loop {
+            let res: Result<(heapless::Vec<AccessPointInfo, 10>, usize), WifiError> =
+                controller.scan_n();
+            if let Ok((res, _count)) = res {
+                let mut found = false;
+                for ap in res {
+                    log::info!("{:?}", ap);
+                    if ap.ssid == SSID {
+                        log::info!("Found AP: {:?}", ap);
+                        found = true;
+                        controller.set_configuration(&Configuration::Client(ClientConfiguration {
+                            ssid: ap.ssid,
+                            password: PASSWORD.try_into().unwrap(),
+                            auth_method: ap.auth_method.unwrap_or(AuthMethod::WPA2Personal),
+                            bssid: Some(ap.bssid),
+                            channel: Some(ap.channel),
+                        })).unwrap();
+                        break;
+                    }
+                }
+                if found {
+                    break;
+                }
+                log::error!("Scan done, no AP found");
             }
         }
 
         log::info!("{:?}", controller.get_capabilities());
+        log::info!("{:?}", controller.get_configuration());
         log::info!("Wi-Fi connect: {:?}", controller.connect());
 
         log::info!("Wait to get connected");
-        let delay = Delay::new(self.clocks);
-        const RETRY_DELAY_MS: u32 = 15000;
+        const DELAY_MS: u32 = 1000;
         loop {
             let res = controller.is_connected();
             match res {
@@ -112,21 +117,24 @@ impl WifiConnectionBuilder<'_> {
                     }
                 }
                 Err(err) => {
-                    log::warn!("{:?}, retry in {}s..", err, RETRY_DELAY_MS / 1000);
-                    delay.delay_millis(RETRY_DELAY_MS);
-                    log::info!("Wi-Fi reconnect: {:?}", controller.connect());
+                    log::warn!("Error: {:?}, next attempt in {}ms", err, DELAY_MS);
+                    delay.delay_millis(DELAY_MS);
                 }
             }
         }
-        log::info!("{:?}", controller.is_connected());
 
         let wifi_stack = WifiStack::new(iface, device, sockets, current_millis);
+        let start_time = current_millis();
         log::info!("Wait to get an ip address");
         loop {
             wifi_stack.work();
 
             if wifi_stack.is_iface_up() {
-                log::info!("got ip {:?}", wifi_stack.get_ip_info());
+                log::info!(
+                    "got ip {:?} in {}ms",
+                    wifi_stack.get_ip_info(),
+                    current_millis() - start_time
+                );
                 break;
             }
         }
