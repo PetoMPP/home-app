@@ -5,7 +5,7 @@ use axum::{
     response::Html,
     Extension,
 };
-use home_models::models::Sensor;
+use crate::models::Sensor;
 
 #[derive(Template)]
 #[template(path = "pages/home.html")]

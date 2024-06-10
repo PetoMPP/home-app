@@ -1,9 +1,11 @@
 #![no_std]
 #![no_main]
 
+use embedded_io::{Read, Write};
 use esp_backtrace as _;
 use esp_hal::{clock::ClockControl, peripherals::Peripherals, prelude::*, system::SystemControl};
 use esp_println::logger::init_logger;
+use heapless::{String, Vec};
 use smoltcp::iface::SocketStorage;
 
 mod led_button;
@@ -25,5 +27,29 @@ fn main() -> ! {
     let mut storage: [SocketStorage; 3] = Default::default();
     let wifi = wifi_builder.connect(&mut storage);
 
-    loop {}
+    let mut rx_buffer = [0u8; 2048];
+    let mut tx_buffer = [0u8; 2048];
+    let mut socket = wifi.get_socket(&mut rx_buffer, &mut tx_buffer);
+
+    loop {
+        if !socket.is_open() {
+            log::info!("Listening on port {}", home_consts::SENSOR_PORT);
+            socket.listen(home_consts::SENSOR_PORT).unwrap();
+        }
+
+        if !socket.is_connected() {
+            log::warn!("Socket disconnected..");
+            socket.close();
+            continue;
+        }
+        log::info!("Connected!");
+        log::info!("Reading message..");
+        let mut req_buffer = [0u8; 2048];
+        socket.read(&mut req_buffer).unwrap();
+        log::info!("Received message: {:?}", String::from_utf8(Vec::<_, 2048>::from_slice(&req_buffer).unwrap()).unwrap());
+        // not a valid http
+        socket.write_fmt(format_args!("Hello from ESP32!")).unwrap();
+        log::info!("Sent message");
+        socket.close();
+    }
 }

@@ -1,4 +1,4 @@
-use home_models::models::Sensor;
+use crate::models::Sensor;
 use serde_derive::{Deserialize, Serialize};
 use std::{sync::Arc, time::Duration};
 use tokio::{sync::Mutex, task::JoinHandle};
@@ -71,9 +71,8 @@ impl ScannerService {
         for i in 0..=255 {
             progress.lock().await.progress = i + 1;
             let host = format!("{}{}", target, i);
-            const PORT: u16 = 42069;
             let Ok(resp) = reqwest::Client::new()
-                .get(format!("http://{}:{}", host, PORT))
+                .get(format!("http://{}:{}", host, home_consts::SENSOR_PORT))
                 .timeout(Duration::from_secs_f32(0.2))
                 .send()
                 .await
