@@ -1,8 +1,5 @@
 use crate::{
-    models::{
-        http::{Request, ResponseBuilder},
-        json::Error,
-    },
+    models::http::{Request, ResponseBuilder},
     storage::StoreProvider,
     BUTTON,
 };
@@ -13,6 +10,7 @@ use esp_hal::macros::handler;
 use esp_println::println;
 use esp_storage::FlashStorage;
 use esp_wifi::{current_millis, wifi::WifiStaDevice, wifi_interface::Socket};
+use home_common::models::ErrorResponse;
 use status::StatusCode;
 
 pub mod route;
@@ -64,7 +62,7 @@ pub fn server_loop<'s, 'r>(socket: &'s mut Socket<WifiStaDevice>) -> ! {
 
         if !socket.is_open() {
             log::info!("Waiting for connection");
-            socket.listen(home_consts::SENSOR_PORT).unwrap();
+            socket.listen(home_common::consts::SENSOR_PORT).unwrap();
         }
 
         critical_section::with(|cs| {
@@ -132,7 +130,7 @@ pub fn server_loop<'s, 'r>(socket: &'s mut Socket<WifiStaDevice>) -> ! {
                         (true, Some(route)) => (route.response)(&request),
                         (true, None) => StatusCode::NOT_FOUND.into(),
                         _ => {
-                            let error = Error {error:"To connect use /pair endpoint and pairing button on the device."};
+                            let error = ErrorResponse { error: "To connect use /pair endpoint and pairing button on the device." };
                             ResponseBuilder::default()
                                 .with_code(StatusCode::FORBIDDEN)
                                 .with_data(&error)

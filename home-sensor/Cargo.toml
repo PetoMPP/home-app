@@ -36,7 +36,7 @@ esp-wifi = { version = "0.6.0", features = [
     "smoltcp",
 ] }
 heapless = { version = "0.8.0", default-features = false, features = ["serde"] }
-home-consts = { path = "../home-consts" }
+home-common = { path = "../home-common" }
 itoa = { version = "1.0.11" }
 log = { version = "0.4.21" }
 ryu = { version = "1.0.18" }

@@ -1,5 +1,5 @@
 [workspace]
-members = ["home-api", "home-consts"]
+members = ["home-api", "home-common"]
 exclude = ["home-sensor"]
 resolver = "2"
 
@@ -8,6 +8,7 @@ axum = { version = "0.7.5", features = ["ws"] }
 askama = "0.12.1"
 chrono = { version = "0.4", features = ["serde"] }
 deref-derive = "0.1.0"
+heapless = { version = "0.8.0", default-features = false, features = ["serde"] }
 openssl = { version = "0.10", features = ["vendored"] }
 pnet = "0.35.0"
 r2d2_sqlite = { version = "0.24", features = ["bundled"] }

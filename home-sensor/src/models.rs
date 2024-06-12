@@ -163,20 +163,6 @@ pub mod http {
     }
 }
 
-pub mod json {
-    use serde::{Deserialize, Serialize};
-
-    #[derive(Serialize, Deserialize, Debug, Default)]
-    pub struct Error<'e> {
-        pub error: &'e str,
-    }
-
-    #[derive(Serialize, Deserialize, Debug, Default)]
-    pub struct PairData<'p> {
-        pub id: &'p str,
-    }
-}
-
 pub mod storage {
     use heapless::{String, Vec};
     use serde::{Deserialize, Serialize};

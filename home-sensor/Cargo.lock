@@ -569,8 +569,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 
 [[package]]
-name = "home-consts"
+name = "home-common"
 version = "0.1.0"
+dependencies = [
+ "heapless 0.8.0",
+ "serde",
+]
 
 [[package]]
 name = "home-sensor"
@@ -585,7 +589,7 @@ dependencies = [
  "esp-storage",
  "esp-wifi",
  "heapless 0.8.0",
- "home-consts",
+ "home-common",
  "itoa",
  "log",
  "ryu",

@@ -1,11 +1,8 @@
 use super::Route;
-use crate::{
-    http::status::StatusCode,
-    models::{http::ResponseBuilder, json::PairData},
-    storage::StoreProvider,
-};
+use crate::{http::status::StatusCode, models::http::ResponseBuilder, storage::StoreProvider};
 use esp_storage::FlashStorage;
 use heapless::String;
+use home_common::models::PairResponse;
 
 pub const PAIR_HEADER_NAME: &str = "X-Pair-Id";
 const PAIRED_KEY_LEN: usize = 64;
@@ -34,7 +31,7 @@ pub fn pair() -> Route {
             flash_storage.set(store);
 
             ResponseBuilder::default()
-                .with_data(&PairData { id: id.as_str() })
+                .with_data(&PairResponse { id: id.as_str() })
                 .into()
         },
     }
