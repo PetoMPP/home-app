@@ -107,7 +107,7 @@ impl WifiConnectionBuilder<'_> {
         log::info!("Wi-Fi connect: {:?}", controller.connect());
 
         log::info!("Wait to get connected");
-        const DELAY_MS: u32 = 1000;
+        const DELAY_MS: u32 = 10000;
         loop {
             let res = controller.is_connected();
             match res {

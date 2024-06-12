@@ -35,7 +35,9 @@ esp-wifi = { version = "0.6.0", features = [
 ] }
 heapless = { version = "0.8.0", default-features = false }
 home-consts = { path = "../home-consts" }
+itoa = { version = "1.0.11" }
 log = { version = "0.4.21" }
+ryu = { version = "1.0.18" }
 smoltcp = { version = "0.11.0", default-features = false, features = [
     "proto-igmp",
     "proto-ipv4",
