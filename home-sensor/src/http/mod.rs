@@ -1,7 +1,12 @@
+use crate::BUTTON;
+use core::{borrow::BorrowMut, cell::RefCell};
+use critical_section::Mutex;
 use embedded_io::{Read, Write};
+use esp_hal::macros::handler;
 use esp_println::println;
 use esp_wifi::{current_millis, wifi::WifiStaDevice, wifi_interface::Socket};
 use heapless::FnvIndexMap;
+use route::headers;
 use status::StatusCode;
 
 pub mod route;
@@ -19,7 +24,7 @@ struct Timeout {
 }
 
 impl Timeout {
-    pub fn new(delay_ms: u64) -> Self {
+    pub const fn new(delay_ms: u64) -> Self {
         Self {
             delay_ms,
             end_time: None,
@@ -35,7 +40,11 @@ impl Timeout {
     }
 
     pub fn finished(&self) -> bool {
-        current_millis() > self.end_time.unwrap_or(u64::MAX)
+        current_millis() > self.end_time.unwrap_or(0)
+    }
+
+    pub fn started(&self) -> bool {
+        self.end_time.is_some()
     }
 }
 
@@ -83,9 +92,12 @@ impl<'r> TryFrom<&'r [u8]> for Request<'r> {
     }
 }
 
+static OPENED_TIMEOUT: Mutex<RefCell<Timeout>> = Mutex::new(RefCell::new(Timeout::new(15_000)));
+
 pub fn server_loop<'s, 'r>(socket: &'s mut Socket<WifiStaDevice>) -> ! {
     log::info!("Start listening!");
     let mut disconnect_timeout = Timeout::new(100);
+    let mut pairing = false;
     loop {
         socket.work();
 
@@ -93,6 +105,17 @@ pub fn server_loop<'s, 'r>(socket: &'s mut Socket<WifiStaDevice>) -> ! {
             log::info!("Waiting for connection");
             socket.listen(home_consts::SENSOR_PORT).unwrap();
         }
+
+        critical_section::with(|cs| {
+            let timeout = OPENED_TIMEOUT.borrow_ref(cs);
+            if !pairing && timeout.started() {
+                pairing = true;
+            }
+            if pairing && timeout.finished() {
+                log::info!("Timeout reached, closing connection");
+                pairing = false;
+            }
+        });
 
         if socket.is_connected() {
             println!("Connected");
@@ -126,16 +149,39 @@ pub fn server_loop<'s, 'r>(socket: &'s mut Socket<WifiStaDevice>) -> ! {
                 continue;
             };
 
-            let nf = route::not_found();
-            let routes = route::routes();
-            let response = routes
-                .into_iter()
-                .find(|r| (r.is_match)(&request))
-                .unwrap_or(nf);
+            let pair_route = route::pair::pair();
+            let response = match pairing {
+                true if (pair_route.is_match)(&request) => (pair_route.response)(&request),
+                _ => {
+                    let mut valid = false;
+                    if let Some(id) = request.headers.get(route::pair::PAIR_HEADER_NAME) {
+                        critical_section::with(|cs| {
+                            let keys = unsafe { route::pair::PAIRED_KEYS.borrow_ref(cs) };
+                            valid = keys.iter().any(|k| k.as_str() == *id);
+                        });
+                    }
 
-            socket
-                .write_all((response.response)(&request).as_slice())
-                .unwrap();
+                    match (
+                        valid,
+                        route::routes().into_iter().find(|r| (r.is_match)(&request)),
+                    ) {
+                        (true, Some(route)) => (route.response)(&request),
+                        (true, None) => headers(StatusCode::NOT_FOUND, &Default::default()),
+                        _ => {
+                            let mut ibuffer = itoa::Buffer::new();
+                            let b = b"{\"error\": \"To connect use /pair endpoint and pairing button on the device.\"}";
+                            let mut h = FnvIndexMap::new();
+                            h.insert("Content-Type", "application/json").unwrap();
+                            h.insert("Content-Length", ibuffer.format(b.len())).unwrap();
+                            let mut h = headers(StatusCode::FORBIDDEN, &h);
+                            h.extend_from_slice(b).unwrap();
+                            h
+                        }
+                    }
+                }
+            };
+
+            socket.write_all(response.as_slice()).unwrap();
 
             socket.flush().unwrap();
             socket.close();
@@ -154,4 +200,17 @@ pub fn server_loop<'s, 'r>(socket: &'s mut Socket<WifiStaDevice>) -> ! {
             disconnect_timeout.reset();
         }
     }
+}
+
+#[handler]
+pub fn handler() {
+    critical_section::with(|cs| {
+        let mut but = BUTTON.borrow_ref_mut(cs);
+        let but = but.as_mut().unwrap();
+        let mut timeout = OPENED_TIMEOUT.borrow_ref_mut(cs);
+        let timeout = timeout.borrow_mut();
+        timeout.reset();
+        timeout.start();
+        but.clear_interrupt();
+    });
 }

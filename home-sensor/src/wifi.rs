@@ -57,10 +57,14 @@ impl WifiConnectionBuilder<'_> {
     ) -> WifiStack<'a, WifiStaDevice> {
         // Initialize the timers used for Wifi
         let timer = SystemTimer::new(self.sys_timer).alarm0;
+        let rng = Rng::new(self.rng);
+        critical_section::with(|cs| {
+            crate::RNG.borrow_ref_mut(cs).replace(rng);
+        });
         let init = initialize(
             EspWifiInitFor::Wifi,
             timer,
-            Rng::new(self.rng),
+            rng,
             self.radio_clk,
             self.clocks,
         )
@@ -85,13 +89,15 @@ impl WifiConnectionBuilder<'_> {
                     if ap.ssid == SSID {
                         log::info!("Found AP: {:?}", ap);
                         found = true;
-                        controller.set_configuration(&Configuration::Client(ClientConfiguration {
-                            ssid: ap.ssid,
-                            password: PASSWORD.try_into().unwrap(),
-                            auth_method: ap.auth_method.unwrap_or(AuthMethod::WPA2Personal),
-                            bssid: Some(ap.bssid),
-                            channel: Some(ap.channel),
-                        })).unwrap();
+                        controller
+                            .set_configuration(&Configuration::Client(ClientConfiguration {
+                                ssid: ap.ssid,
+                                password: PASSWORD.try_into().unwrap(),
+                                auth_method: ap.auth_method.unwrap_or(AuthMethod::WPA2Personal),
+                                bssid: Some(ap.bssid),
+                                channel: Some(ap.channel),
+                            }))
+                            .unwrap();
                         break;
                     }
                 }

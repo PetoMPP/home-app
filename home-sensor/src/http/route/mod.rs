@@ -1,8 +1,8 @@
 use super::{status::StatusCode, Request, HEADERS_LEN, RESPONSE_BODY_LEN, RESPONSE_HEADER_LEN};
-use heapless::{FnvIndexMap, String, Vec};
-use index::index;
+use heapless::{FnvIndexMap, Vec};
 
 pub mod index;
+pub mod pair;
 
 #[derive(Debug)]
 pub struct Route {
@@ -13,35 +13,24 @@ pub struct Route {
 pub fn headers(
     code: StatusCode,
     headers: &FnvIndexMap<&str, &str, HEADERS_LEN>,
-) -> String<RESPONSE_HEADER_LEN> {
-    let mut header_str = String::new();
-    header_str.push_str(&code.http_header()).unwrap();
+) -> Vec<u8, RESPONSE_HEADER_LEN> {
+    let mut header = Vec::new();
+    header
+        .extend_from_slice(&code.http_header().as_bytes())
+        .unwrap();
     for (k, v) in headers {
-        header_str.push_str(k).unwrap();
-        header_str.push_str(": ").unwrap();
-        header_str.push_str(v).unwrap();
-        header_str.push_str("\r\n").unwrap();
+        header.extend_from_slice(k.as_bytes()).unwrap();
+        header.extend_from_slice(b": ").unwrap();
+        header.extend_from_slice(v.as_bytes()).unwrap();
+        header.extend_from_slice(b"\r\n").unwrap();
     }
-    header_str.push_str("\r\n").unwrap();
-    header_str
-}
-
-pub const fn not_found() -> Route {
-    Route {
-        is_match: |_| true,
-        response: |_| {
-            let mut vec = Vec::new();
-            vec.extend_from_slice(headers(StatusCode::NOT_FOUND, &FnvIndexMap::new()).as_bytes())
-                .unwrap();
-            vec.extend_from_slice("{ \"error\": 404 }".as_bytes())
-                .unwrap();
-            vec
-        },
-    }
+    header.extend_from_slice(b"\r\n").unwrap();
+    header
 }
 
 pub fn routes() -> Vec<Route, 16> {
     let mut routes = Vec::new();
-    routes.push(index()).unwrap();
+    routes.push(index::index()).unwrap();
+    routes.push(pair::pair()).unwrap();
     routes
 }
