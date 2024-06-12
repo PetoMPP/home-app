@@ -72,7 +72,7 @@ impl ScannerService {
             progress.lock().await.progress = i + 1;
             let host = format!("{}{}", target, i);
             let Ok(resp) = reqwest::Client::new()
-                .get(format!("http://{}:{}", host, home_consts::SENSOR_PORT))
+                .get(format!("http://{}:{}", host, home_common::consts::SENSOR_PORT))
                 .timeout(Duration::from_secs_f32(0.2))
                 .send()
                 .await

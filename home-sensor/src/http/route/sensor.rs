@@ -2,10 +2,11 @@ use super::Route;
 use crate::{
     http::{status::StatusCode, OPENED_TIMEOUT},
     models::{http::ResponseBuilder, Sensor},
-    storage::{StoreProvider, StoreUsage},
+    storage::StoreProvider,
 };
 use esp_storage::FlashStorage;
 use heapless::String;
+use home_common::models::SensorResponse;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -23,16 +24,6 @@ impl SensorDto {
             features: self.features.unwrap_or(sensor.features),
         }
     }
-}
-
-#[derive(Debug, Default, Serialize, Deserialize)]
-pub struct SensorResponse {
-    pub name: String<64>,
-    pub location: String<64>,
-    pub features: u32,
-    pub pairing: bool,
-    pub paired_keys: u32,
-    pub usage: StoreUsage,
 }
 
 pub fn get() -> Route {

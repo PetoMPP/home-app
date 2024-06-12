@@ -1,19 +1,7 @@
 use crate::models::storage::Store;
 use embedded_storage::{ReadStorage, Storage};
 use esp_storage::FlashStorage;
-use serde::{Deserialize, Serialize};
-
-#[derive(Default, Debug, Serialize, Deserialize)]
-pub struct StoreUsage {
-    pub used: u32,
-    pub total: u32,
-}
-
-impl StoreUsage {
-    pub fn percent(&self) -> f32 {
-        self.used as f32 * 100.0 / self.total as f32
-    }
-}
+use home_common::models::StoreUsage;
 
 pub trait StoreProvider {
     fn init(&mut self);
