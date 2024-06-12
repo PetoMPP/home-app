@@ -1,17 +1,20 @@
-use crate::BUTTON;
+use crate::{
+    models::{
+        http::{Request, ResponseBuilder},
+        json::Error,
+    },
+    BUTTON,
+};
 use core::{borrow::BorrowMut, cell::RefCell};
 use critical_section::Mutex;
 use embedded_io::{Read, Write};
 use esp_hal::macros::handler;
 use esp_println::println;
 use esp_wifi::{current_millis, wifi::WifiStaDevice, wifi_interface::Socket};
-use heapless::FnvIndexMap;
-use route::headers;
 use status::StatusCode;
 
 pub mod route;
-
-mod status;
+pub mod status;
 
 pub const HEADERS_LEN: usize = 16;
 pub const BUFFER_LEN: usize = 1024;
@@ -45,50 +48,6 @@ impl Timeout {
 
     pub fn started(&self) -> bool {
         self.end_time.is_some()
-    }
-}
-
-#[allow(dead_code)]
-#[derive(Debug)]
-pub struct Request<'r> {
-    route: &'r str,
-    method: &'r str,
-    headers: FnvIndexMap<&'r str, &'r str, HEADERS_LEN>,
-    body: &'r str,
-}
-
-impl<'r> TryFrom<&'r [u8]> for Request<'r> {
-    type Error = StatusCode;
-
-    fn try_from(value: &'r [u8]) -> Result<Self, Self::Error> {
-        let value = unsafe { core::str::from_utf8_unchecked(&value) };
-        let Some(he) = value.find("\r\n\r\n") else {
-            return Err(StatusCode::BAD_REQUEST);
-        };
-        let header_str = &value[..he];
-        let mut lines = header_str.lines();
-        let path_line = lines.next().ok_or(StatusCode::BAD_REQUEST)?;
-        let me = path_line.find(" ").ok_or(StatusCode::BAD_REQUEST)?;
-        let method = &path_line[..me];
-        let path_line = &path_line[me + 1..];
-        let route = &path_line[..path_line.find(" ").ok_or(StatusCode::BAD_REQUEST)?];
-        let mut headers = FnvIndexMap::new();
-        for header in lines {
-            let Some((key, value)) = header.split_once(": ") else {
-                continue;
-            };
-            headers
-                .insert(key, value)
-                .map_err(|_| StatusCode::REQUEST_HEADER_FIELDS_TOO_LARGE)?;
-        }
-        let body = &value[he + 4..];
-
-        Ok(Request {
-            route,
-            method,
-            headers,
-            body,
-        })
     }
 }
 
@@ -166,16 +125,13 @@ pub fn server_loop<'s, 'r>(socket: &'s mut Socket<WifiStaDevice>) -> ! {
                         route::routes().into_iter().find(|r| (r.is_match)(&request)),
                     ) {
                         (true, Some(route)) => (route.response)(&request),
-                        (true, None) => headers(StatusCode::NOT_FOUND, &Default::default()),
+                        (true, None) => StatusCode::NOT_FOUND.into(),
                         _ => {
-                            let mut ibuffer = itoa::Buffer::new();
-                            let b = b"{\"error\": \"To connect use /pair endpoint and pairing button on the device.\"}";
-                            let mut h = FnvIndexMap::new();
-                            h.insert("Content-Type", "application/json").unwrap();
-                            h.insert("Content-Length", ibuffer.format(b.len())).unwrap();
-                            let mut h = headers(StatusCode::FORBIDDEN, &h);
-                            h.extend_from_slice(b).unwrap();
-                            h
+                            let error = Error {error:"To connect use /pair endpoint and pairing button on the device."};
+                            ResponseBuilder::default()
+                                .with_code(StatusCode::FORBIDDEN)
+                                .with_data(&error)
+                                .into()
                         }
                     }
                 }
