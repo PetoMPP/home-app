@@ -123,8 +123,10 @@ impl WifiConnectionBuilder<'_> {
                     }
                 }
                 Err(err) => {
-                    log::warn!("Error: {:?}, next attempt in {}ms", err, DELAY_MS);
+                    log::warn!("Error: {:?}, restarting in {}ms", err, DELAY_MS);
                     delay.delay_millis(DELAY_MS);
+                    esp_hal::reset::software_reset();
+                    unreachable!("Resetting");
                 }
             }
         }
