@@ -1,8 +1,9 @@
 use crate::models::http::Response;
 use core::num::NonZeroU16;
 use heapless::Vec;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize, Serialize)]
 pub struct StatusCode(pub NonZeroU16);
 
 impl Into<Response> for StatusCode {

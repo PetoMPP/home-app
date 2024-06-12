@@ -3,7 +3,7 @@ use heapless::Vec;
 
 pub mod pair;
 
-mod index;
+mod sensor;
 
 #[derive(Debug)]
 pub struct Route {
@@ -13,7 +13,8 @@ pub struct Route {
 
 pub fn routes() -> Vec<Route, 16> {
     let mut routes = Vec::new();
-    routes.push(index::index()).unwrap();
     routes.push(pair::pair()).unwrap();
+    routes.push(sensor::get()).unwrap();
+    routes.push(sensor::post()).unwrap();
     routes
 }

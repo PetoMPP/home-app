@@ -3,6 +3,7 @@ use crate::{
         http::{Request, ResponseBuilder},
         json::Error,
     },
+    storage::StoreProvider,
     BUTTON,
 };
 use core::{borrow::BorrowMut, cell::RefCell};
@@ -10,6 +11,7 @@ use critical_section::Mutex;
 use embedded_io::{Read, Write};
 use esp_hal::macros::handler;
 use esp_println::println;
+use esp_storage::FlashStorage;
 use esp_wifi::{current_millis, wifi::WifiStaDevice, wifi_interface::Socket};
 use status::StatusCode;
 
@@ -21,7 +23,7 @@ pub const BUFFER_LEN: usize = 1024;
 pub const RESPONSE_HEADER_LEN: usize = 512;
 pub const RESPONSE_BODY_LEN: usize = 512;
 
-struct Timeout {
+pub struct Timeout {
     delay_ms: u64,
     end_time: Option<u64>,
 }
@@ -51,7 +53,7 @@ impl Timeout {
     }
 }
 
-static OPENED_TIMEOUT: Mutex<RefCell<Timeout>> = Mutex::new(RefCell::new(Timeout::new(15_000)));
+pub static OPENED_TIMEOUT: Mutex<RefCell<Timeout>> = Mutex::new(RefCell::new(Timeout::new(15_000)));
 
 pub fn server_loop<'s, 'r>(socket: &'s mut Socket<WifiStaDevice>) -> ! {
     log::info!("Start listening!");
@@ -112,13 +114,16 @@ pub fn server_loop<'s, 'r>(socket: &'s mut Socket<WifiStaDevice>) -> ! {
             let response = match pairing {
                 true if (pair_route.is_match)(&request) => (pair_route.response)(&request),
                 _ => {
-                    let mut valid = false;
-                    if let Some(id) = request.headers.get(route::pair::PAIR_HEADER_NAME) {
-                        critical_section::with(|cs| {
-                            let keys = unsafe { route::pair::PAIRED_KEYS.borrow_ref(cs) };
-                            valid = keys.iter().any(|k| k.as_str() == *id);
-                        });
-                    }
+                    let valid = request
+                        .headers
+                        .get(route::pair::PAIR_HEADER_NAME)
+                        .and_then(|id| {
+                            FlashStorage::new()
+                                .get()
+                                .ok()
+                                .map(|s| s.paired_keys.iter().any(|k| k == id))
+                        })
+                        .unwrap_or_default();
 
                     match (
                         valid,
