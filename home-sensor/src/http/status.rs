@@ -1,24 +1,25 @@
+use crate::models::http::Response;
 use core::num::NonZeroU16;
-
-use heapless::String;
+use heapless::Vec;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct StatusCode(pub NonZeroU16);
 
-impl StatusCode {
-    pub fn http_header(&self) -> String<64> {
+impl Into<Response> for StatusCode {
+    fn into(self) -> Response {
         let mut buffer = itoa::Buffer::new();
         let start = "HTTP/1.1";
         let code = buffer.format(self.0.get());
         let text = canonical_reason(self.0.get()).unwrap();
-        let mut res = String::new();
-        res.push_str(start).unwrap();
-        res.push_str(" ").unwrap();
-        res.push_str(code).unwrap();
-        res.push_str(" ").unwrap();
-        res.push_str(text).unwrap();
-        res.push_str("\r\n").unwrap();
-        res
+        let mut res = Vec::new();
+        res.extend_from_slice(start.as_bytes()).unwrap();
+        res.extend_from_slice(b" ").unwrap();
+        res.extend_from_slice(code.as_bytes()).unwrap();
+        res.extend_from_slice(b" ").unwrap();
+        res.extend_from_slice(text.as_bytes()).unwrap();
+        res.extend_from_slice(b"\r\n").unwrap();
+
+        Response::new(res)
     }
 }
 

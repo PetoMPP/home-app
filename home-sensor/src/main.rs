@@ -5,13 +5,19 @@ use core::cell::RefCell;
 use critical_section::Mutex;
 use esp_backtrace as _;
 use esp_hal::{
-    clock::ClockControl, gpio::{Event, Gpio6, Gpio7, Input, Io, Level, Output, Pull}, peripherals::Peripherals, prelude::*, rng::Rng, system::SystemControl
+    clock::ClockControl,
+    gpio::{Event, Gpio6, Gpio7, Input, Io, Level, Output, Pull},
+    peripherals::Peripherals,
+    prelude::*,
+    rng::Rng,
+    system::SystemControl,
 };
 use esp_println::logger::init_logger;
 use smoltcp::iface::SocketStorage;
 
-mod http;
-mod wifi;
+pub mod http;
+pub mod models;
+pub mod wifi;
 
 pub static BUTTON: Mutex<RefCell<Option<Input<Gpio6>>>> = Mutex::new(RefCell::new(None));
 pub static LED: Mutex<RefCell<Option<Output<Gpio7>>>> = Mutex::new(RefCell::new(None));
