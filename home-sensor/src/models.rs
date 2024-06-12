@@ -1,8 +1,18 @@
+use heapless::String;
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, Debug, Default)]
+pub struct Sensor {
+    pub name: String<64>,
+    pub location: String<64>,
+    pub features: u32,
+}
+
 pub mod http {
     use crate::http::{status::StatusCode, HEADERS_LEN, RESPONSE_BODY_LEN, RESPONSE_HEADER_LEN};
     use core::ops::{Deref, DerefMut};
     use heapless::{FnvIndexMap, Vec};
-    use serde::Serialize;
+    use serde::{de::DeserializeOwned, Serialize};
 
     #[derive(Debug, Default)]
     pub struct Headers<'h>(FnvIndexMap<&'h str, &'h str, HEADERS_LEN>);
@@ -41,6 +51,18 @@ pub mod http {
         pub method: &'r str,
         pub headers: Headers<'r>,
         pub body: &'r str,
+    }
+
+    impl<'r> Request<'r> {
+        pub fn body<T: DeserializeOwned>(&self) -> Result<T, StatusCode> {
+            Ok(serde_json_core::from_str::<'_, T>(self.body)
+                .map_err(|e| {
+                    log::warn!("{:?}", e);
+                    log::warn!("Failed to parse body: {}", self.body);
+                    StatusCode::BAD_REQUEST
+                })?
+                .0)
+        }
     }
 
     impl<'r> TryFrom<&'r [u8]> for Request<'r> {
@@ -150,14 +172,19 @@ pub mod json {
     }
 
     #[derive(Serialize, Deserialize, Debug, Default)]
-    pub struct SensorData<'s> {
-        pub name: &'s str,
-        pub location: &'s str,
-        pub pairing: bool,
-    }
-
-    #[derive(Serialize, Deserialize, Debug, Default)]
     pub struct PairData<'p> {
         pub id: &'p str,
+    }
+}
+
+pub mod storage {
+    use heapless::{String, Vec};
+    use serde::{Deserialize, Serialize};
+    use super::Sensor;
+
+    #[derive(Serialize, Deserialize, Debug, Default)]
+    pub struct Store {
+        pub sensor: Sensor,
+        pub paired_keys: Vec<String<64>, 16>,
     }
 }

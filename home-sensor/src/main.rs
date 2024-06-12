@@ -13,10 +13,13 @@ use esp_hal::{
     system::SystemControl,
 };
 use esp_println::logger::init_logger;
+use esp_storage::FlashStorage;
 use smoltcp::iface::SocketStorage;
+use storage::StoreProvider;
 
 pub mod http;
 pub mod models;
+pub mod storage;
 pub mod wifi;
 
 pub static BUTTON: Mutex<RefCell<Option<Input<Gpio6>>>> = Mutex::new(RefCell::new(None));
@@ -44,6 +47,11 @@ fn main() -> ! {
         BUTTON.borrow_ref_mut(cs).replace(button);
         LED.borrow_ref_mut(cs).replace(led);
     });
+
+    // Initialize storage
+    let mut flash_storage = FlashStorage::new();
+    flash_storage.init();
+    log::info!("{:?}", flash_storage.get());
 
     let wifi_builder = wifi_builder!(peripherals, clocks);
     let mut storage: [SocketStorage; 3] = Default::default();

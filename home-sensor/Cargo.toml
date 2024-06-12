@@ -18,6 +18,7 @@ lto = "off"
 [dependencies]
 critical-section = { version = "1.1.2" }
 embedded-io = "0.6.1"
+embedded-storage = { version = "0.3.1" }
 esp-hal = { version = "0.18.0", features = ["esp32c3"] }
 esp-backtrace = { version = "0.12.0", features = [
     "esp32c3",
@@ -26,6 +27,7 @@ esp-backtrace = { version = "0.12.0", features = [
     "println",
 ] }
 esp-println = { version = "0.9.1", features = ["esp32c3", "uart", "log"] }
+esp-storage = { version = "0.3.0", features = ["esp32c3"] }
 esp-wifi = { version = "0.6.0", features = [
     "esp32c3",
     "wifi-default",
@@ -33,7 +35,7 @@ esp-wifi = { version = "0.6.0", features = [
     "phy-enable-usb",
     "smoltcp",
 ] }
-heapless = { version = "0.8.0", default-features = false }
+heapless = { version = "0.8.0", default-features = false, features = ["serde"] }
 home-consts = { path = "../home-consts" }
 itoa = { version = "1.0.11" }
 log = { version = "0.4.21" }
