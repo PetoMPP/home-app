@@ -1,4 +1,5 @@
-use home_common::models::{Sensor, SensorResponse};
+use crate::{models::db::SensorEntity, services::http_client::HttpRequest};
+use home_common::models::{ErrorResponse, PairResponse, Sensor, SensorResponse};
 use serde_derive::{Deserialize, Serialize};
 use std::{sync::Arc, time::Duration};
 use tokio::{sync::Mutex, task::JoinHandle};
@@ -33,7 +34,7 @@ pub enum ScannerState {
 
 #[derive(Clone, Debug)]
 pub struct ScannerResult {
-    pub sensors: Vec<Sensor>,
+    pub sensors: Vec<SensorEntity>,
     pub created: chrono::DateTime<chrono::Utc>,
 }
 
@@ -71,25 +72,39 @@ impl ScannerService {
         for i in 0..=255 {
             progress.lock().await.progress = i + 1;
             let host = format!("{}{}", target, i);
-            let Ok(resp) = reqwest::Client::new()
-                .get(format!("http://{}:{}", host, home_common::consts::SENSOR_PORT))
+            let host = format!("http://{}:{}/", host, home_common::consts::SENSOR_PORT);
+            let Ok(result) = reqwest::Client::new()
+                .post(host.clone() + "pair")
                 .timeout(Duration::from_secs_f32(0.2))
-                .send()
+                .send_parse::<PairResponse, ErrorResponse>()
                 .await
             else {
                 continue;
             };
-            let Ok(sensor) = resp.json::<SensorResponse>().await else {
+            let Ok(pair) = result else {
                 continue;
             };
-            let sensor = Sensor {
-                name: sensor.name,
-                location: sensor.location,
-                features: sensor.features,
+            let Ok(result) = reqwest::Client::new()
+                .post(host + "sensor")
+                .header(home_common::consts::PAIR_HEADER_NAME, pair.id.as_str())
+                .send_parse::<SensorResponse, ErrorResponse>()
+                .await
+            else {
+                continue;
             };
-            progress.lock().await.sensors.push(sensor.clone());
-            sensors.push(sensor);
+            let Ok(sensor) = result else {
+                continue;
+            };
+            let sensor_entity = SensorEntity {
+                name: sensor.name.as_str().to_string(),
+                location: sensor.location.as_str().to_string(),
+                features: sensor.features,
+                pair_id: pair.id.to_string(),
+            };
+            progress.lock().await.sensors.push(sensor.into());
+            sensors.push(sensor_entity);
         }
+
         Ok(ScannerResult {
             sensors,
             created: chrono::Utc::now(),

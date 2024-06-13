@@ -1,20 +1,21 @@
 #![no_std]
 pub mod consts {
     pub const SENSOR_PORT: u16 = 42069;
+    pub const PAIR_HEADER_NAME: &str = "X-Pair-Id";
 }
 
 pub mod models {
     use heapless::String;
     use serde::{Deserialize, Serialize};
 
-    #[derive(Serialize, Deserialize, Debug, Default, Clone, Copy)]
-    pub struct ErrorResponse<'e> {
-        pub error: &'e str,
+    #[derive(Serialize, Deserialize, Debug, Default, Clone)]
+    pub struct ErrorResponse {
+        pub error: String<256>,
     }
 
-    #[derive(Serialize, Deserialize, Debug, Default, Clone, Copy)]
-    pub struct PairResponse<'p> {
-        pub id: &'p str,
+    #[derive(Serialize, Deserialize, Debug, Default, Clone)]
+    pub struct PairResponse {
+        pub id: String<64>,
     }
 
     #[derive(Serialize, Deserialize, Debug, Default, Clone)]
@@ -22,6 +23,16 @@ pub mod models {
         pub name: String<64>,
         pub location: String<64>,
         pub features: u32,
+    }
+
+    impl From<SensorResponse> for Sensor {
+        fn from(sensor: SensorResponse) -> Self {
+            Sensor {
+                name: sensor.name,
+                location: sensor.location,
+                features: sensor.features,
+            }
+        }
     }
 
     #[derive(Debug, Default, Serialize, Deserialize, Clone)]
