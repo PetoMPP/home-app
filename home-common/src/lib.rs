@@ -7,17 +7,41 @@ pub mod models {
     use heapless::String;
     use serde::{Deserialize, Serialize};
 
-    #[derive(Serialize, Deserialize, Debug, Default)]
+    #[derive(Serialize, Deserialize, Debug, Default, Clone, Copy)]
     pub struct ErrorResponse<'e> {
         pub error: &'e str,
     }
 
-    #[derive(Serialize, Deserialize, Debug, Default)]
+    #[derive(Serialize, Deserialize, Debug, Default, Clone, Copy)]
     pub struct PairResponse<'p> {
         pub id: &'p str,
     }
 
-    #[derive(Debug, Default, Serialize, Deserialize)]
+    #[derive(Serialize, Deserialize, Debug, Default, Clone)]
+    pub struct Sensor {
+        pub name: String<64>,
+        pub location: String<64>,
+        pub features: u32,
+    }
+
+    #[derive(Debug, Default, Serialize, Deserialize, Clone)]
+    pub struct SensorDto {
+        pub name: Option<String<64>>,
+        pub location: Option<String<64>>,
+        pub features: Option<u32>,
+    }
+
+    impl SensorDto {
+        pub fn merge(self, sensor: Sensor) -> Sensor {
+            Sensor {
+                name: self.name.unwrap_or(sensor.name),
+                location: self.location.unwrap_or(sensor.location),
+                features: self.features.unwrap_or(sensor.features),
+            }
+        }
+    }
+
+    #[derive(Debug, Default, Serialize, Deserialize, Clone)]
     pub struct SensorResponse {
         pub name: String<64>,
         pub location: String<64>,
@@ -27,7 +51,7 @@ pub mod models {
         pub usage: StoreUsage,
     }
 
-    #[derive(Default, Debug, Serialize, Deserialize)]
+    #[derive(Default, Debug, Serialize, Deserialize, Clone, Copy)]
     pub struct StoreUsage {
         pub used: u32,
         pub total: u32,

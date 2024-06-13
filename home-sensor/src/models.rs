@@ -1,13 +1,3 @@
-use heapless::String;
-use serde::{Deserialize, Serialize};
-
-#[derive(Serialize, Deserialize, Debug, Default)]
-pub struct Sensor {
-    pub name: String<64>,
-    pub location: String<64>,
-    pub features: u32,
-}
-
 pub mod http {
     use crate::http::{status::StatusCode, HEADERS_LEN, RESPONSE_BODY_LEN, RESPONSE_HEADER_LEN};
     use core::ops::{Deref, DerefMut};
@@ -165,8 +155,8 @@ pub mod http {
 
 pub mod storage {
     use heapless::{String, Vec};
+    use home_common::models::Sensor;
     use serde::{Deserialize, Serialize};
-    use super::Sensor;
 
     #[derive(Serialize, Deserialize, Debug, Default)]
     pub struct Store {

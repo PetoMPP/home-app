@@ -1,5 +1,7 @@
-use crate::models::Sensor;
+use std::str::FromStr;
+
 use deref_derive::{Deref, DerefMut};
+use home_common::models::Sensor;
 use r2d2_sqlite::SqliteConnectionManager;
 
 #[derive(Clone, Deref, DerefMut)]
@@ -12,12 +14,15 @@ impl SqlitePool {
         let sensors = stmt
             .query_map([], |row| {
                 Ok(Sensor {
-                    id: row.get(0)?,
-                    features: row.get(1)?,
+                    name: heapless::String::<64>::from_str(row.get::<_, String>(0)?.as_str())
+                        .unwrap(),
+                    location: heapless::String::<64>::from_str(row.get::<_, String>(1)?.as_str())
+                        .unwrap(),
+                    features: row.get(2)?,
                 })
             })?
-            .filter_map(|s| s.ok())
-            .collect::<Vec<_>>();
-        Ok(sensors)
+            .collect::<Result<Vec<_>, _>>();
+
+        sensors
     }
 }
