@@ -4,7 +4,6 @@ use esp_storage::FlashStorage;
 use heapless::String;
 use home_common::models::PairResponse;
 
-pub const PAIR_HEADER_NAME: &str = "X-Pair-Id";
 const PAIRED_KEY_LEN: usize = 64;
 
 pub fn pair() -> Route {
@@ -31,7 +30,7 @@ pub fn pair() -> Route {
             flash_storage.set(store);
 
             ResponseBuilder::default()
-                .with_data(&PairResponse { id: id.as_str() })
+                .with_data(&PairResponse { id })
                 .into()
         },
     }

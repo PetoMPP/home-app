@@ -13,7 +13,7 @@ pub trait StoreProvider {
 }
 
 const OFFSET: u32 = 0x9000;
-const CAPACITY: u32 = 0x1000;
+const CAPACITY: u32 = 0x6000;
 
 impl StoreProvider for FlashStorage {
     fn init(&mut self) {

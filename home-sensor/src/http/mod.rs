@@ -114,7 +114,7 @@ pub fn server_loop<'s, 'r>(socket: &'s mut Socket<WifiStaDevice>) -> ! {
                 _ => {
                     let valid = request
                         .headers
-                        .get(route::pair::PAIR_HEADER_NAME)
+                        .get(home_common::consts::PAIR_HEADER_NAME)
                         .and_then(|id| {
                             FlashStorage::new()
                                 .get()
@@ -130,7 +130,7 @@ pub fn server_loop<'s, 'r>(socket: &'s mut Socket<WifiStaDevice>) -> ! {
                         (true, Some(route)) => (route.response)(&request),
                         (true, None) => StatusCode::NOT_FOUND.into(),
                         _ => {
-                            let error = ErrorResponse { error: "To connect use /pair endpoint and pairing button on the device." };
+                            let error = ErrorResponse { error: "To connect use /pair endpoint and pairing button on the device.".try_into().unwrap() };
                             ResponseBuilder::default()
                                 .with_code(StatusCode::FORBIDDEN)
                                 .with_data(&error)
