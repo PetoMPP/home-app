@@ -14,6 +14,7 @@ pub struct Route {
 pub fn routes() -> Vec<Route, 16> {
     let mut routes = Vec::new();
     routes.push(pair::pair()).unwrap();
+    routes.push(pair::confirm()).unwrap();
     routes.push(sensor::get()).unwrap();
     routes.push(sensor::post()).unwrap();
     routes

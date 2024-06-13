@@ -11,6 +11,7 @@ use esp_println::println;
 use esp_storage::FlashStorage;
 use esp_wifi::{current_millis, wifi::WifiStaDevice, wifi_interface::Socket};
 use home_common::models::ErrorResponse;
+use route::pair::CURRENT_KEYS;
 use status::StatusCode;
 
 pub mod route;
@@ -51,7 +52,7 @@ impl Timeout {
     }
 }
 
-pub static OPENED_TIMEOUT: Mutex<RefCell<Timeout>> = Mutex::new(RefCell::new(Timeout::new(15_000)));
+pub static OPENED_TIMEOUT: Mutex<RefCell<Timeout>> = Mutex::new(RefCell::new(Timeout::new(30_000)));
 
 pub fn server_loop<'s, 'r>(socket: &'s mut Socket<WifiStaDevice>) -> ! {
     log::info!("Start listening!");
@@ -72,6 +73,7 @@ pub fn server_loop<'s, 'r>(socket: &'s mut Socket<WifiStaDevice>) -> ! {
             }
             if pairing && timeout.finished() {
                 log::info!("Timeout reached, closing connection");
+                CURRENT_KEYS.borrow_ref_mut(cs).clear();
                 pairing = false;
             }
         });
@@ -109,8 +111,10 @@ pub fn server_loop<'s, 'r>(socket: &'s mut Socket<WifiStaDevice>) -> ! {
             };
 
             let pair_route = route::pair::pair();
+            let pair_confirm_route = route::pair::confirm();
             let response = match pairing {
                 true if (pair_route.is_match)(&request) => (pair_route.response)(&request),
+                true if (pair_confirm_route.is_match)(&request) => (pair_confirm_route.response)(&request),
                 _ => {
                     let valid = request
                         .headers
