@@ -5,7 +5,7 @@ use axum::{
     response::Html,
     Extension,
 };
-use crate::models::Sensor;
+use home_common::models::Sensor;
 
 #[derive(Template)]
 #[template(path = "pages/home.html")]
@@ -22,10 +22,10 @@ pub struct HomeInnerTemplate {
 pub async fn home(
     Extension(pool): Extension<SqlitePool>,
     headers: HeaderMap,
-) -> Result<Html<String>, StatusCode> {
+) -> Result<Html<String>, (StatusCode, String)> {
     let sensors = pool
         .get_sensors()
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
     match headers.contains_key("Hx-Request") {
         true => Ok(Html(HomeInnerTemplate { sensors }.render().unwrap())),
@@ -41,10 +41,10 @@ pub struct SensorRowsTemplate {
 
 pub async fn get_sensors(
     Extension(pool): Extension<SqlitePool>,
-) -> Result<Html<String>, StatusCode> {
+) -> Result<Html<String>, (StatusCode, String)> {
     let sensors = pool
         .get_sensors()
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
     Ok(Html(SensorRowsTemplate { sensors }.render().unwrap()))
 }

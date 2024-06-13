@@ -1,4 +1,4 @@
-use crate::models::Sensor;
+use home_common::models::{Sensor, SensorResponse};
 use serde_derive::{Deserialize, Serialize};
 use std::{sync::Arc, time::Duration};
 use tokio::{sync::Mutex, task::JoinHandle};
@@ -79,8 +79,13 @@ impl ScannerService {
             else {
                 continue;
             };
-            let Ok(sensor) = resp.json::<Sensor>().await else {
+            let Ok(sensor) = resp.json::<SensorResponse>().await else {
                 continue;
+            };
+            let sensor = Sensor {
+                name: sensor.name,
+                location: sensor.location,
+                features: sensor.features,
             };
             progress.lock().await.sensors.push(sensor.clone());
             sensors.push(sensor);

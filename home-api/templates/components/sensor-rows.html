@@ -7,7 +7,8 @@
 </tr>
 {% for sensor in sensors %}
 <tr>
-    <td> {{ sensor.id }} </td>
+    <td> {{ sensor.name }} </td>
+    <td> {{ sensor.location }} </td>
     <td> {{ sensor.features }} </td>
 </tr>
 {% endfor %}

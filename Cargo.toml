@@ -4,12 +4,13 @@ exclude = ["home-sensor"]
 resolver = "2"
 
 [workspace.dependencies]
+
 axum = { version = "0.7.5", features = ["ws"] }
 askama = "0.12.1"
 chrono = { version = "0.4", features = ["serde"] }
 deref-derive = "0.1.0"
 heapless = { version = "0.8.0", default-features = false, features = ["serde"] }
-openssl = { version = "0.10", features = ["vendored"] }
+home-common = { path = "../home-common" }
 pnet = "0.35.0"
 r2d2_sqlite = { version = "0.24", features = ["bundled"] }
 r2d2 = "0.8"
@@ -22,3 +23,5 @@ tower-http = { version = "0.5.2", features = ["fs", "trace"] }
 tower-livereload = "0.9"
 tracing = "0.1"
 tracing-subscriber = "0.3"
+# Optional dependencies
+openssl = { version = "0.10", features = ["vendored"] }
