@@ -15,7 +15,7 @@ pub mod models {
 
     #[derive(Serialize, Deserialize, Debug, Default, Clone)]
     pub struct PairResponse {
-        pub id: String<64>,
+        pub id: String<32>,
     }
 
     #[derive(Serialize, Deserialize, Debug, Default, Clone)]

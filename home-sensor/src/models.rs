@@ -7,24 +7,29 @@ pub mod http {
     #[derive(Debug, Default)]
     pub struct Headers<'h>(FnvIndexMap<&'h str, &'h str, HEADERS_LEN>);
 
-    impl<'h> Deref for Headers<'h> {
-        type Target = FnvIndexMap<&'h str, &'h str, HEADERS_LEN>;
-
-        fn deref(&self) -> &Self::Target {
-            &self.0
+    impl<'h> Headers<'h> {
+        pub fn get(&self, key: &str) -> Option<&str> {
+            let pos = self
+                .0
+                .iter()
+                .position(|(k, _)| k.eq_ignore_ascii_case(key))?;
+            self.0.iter().nth(pos).map(|(_, v)| *v)
         }
-    }
 
-    impl<'h> DerefMut for Headers<'h> {
-        fn deref_mut(&mut self) -> &mut Self::Target {
-            &mut self.0
+        pub fn insert(
+            &mut self,
+            key: &'h str,
+            value: &'h str,
+        ) -> Result<Option<&'h str>, (&str, &str)> {
+            self.0.retain(|k, _| !k.eq_ignore_ascii_case(key));
+            self.0.insert(key, value)
         }
     }
 
     impl<'r> Headers<'r> {
         fn into_response(self, code: StatusCode) -> Response {
             let mut resp: Response = code.into();
-            for (k, v) in self.iter() {
+            for (k, v) in self.0.iter() {
                 resp.extend_from_slice(k.as_bytes()).unwrap();
                 resp.extend_from_slice(b": ").unwrap();
                 resp.extend_from_slice(v.as_bytes()).unwrap();
@@ -154,13 +159,13 @@ pub mod http {
 }
 
 pub mod storage {
-    use heapless::{String, Vec};
+    use heapless::{FnvIndexSet, String};
     use home_common::models::Sensor;
     use serde::{Deserialize, Serialize};
 
     #[derive(Serialize, Deserialize, Debug, Default)]
     pub struct Store {
         pub sensor: Sensor,
-        pub paired_keys: Vec<String<64>, 16>,
+        pub paired_keys: FnvIndexSet<String<32>, 32>,
     }
 }

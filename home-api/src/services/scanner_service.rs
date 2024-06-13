@@ -1,7 +1,8 @@
+use super::pairing_service::PairingService;
 use crate::{models::db::SensorEntity, services::http_client::HttpRequest};
-use home_common::models::{ErrorResponse, PairResponse, Sensor, SensorResponse};
+use home_common::models::{ErrorResponse, Sensor, SensorResponse};
 use serde_derive::{Deserialize, Serialize};
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
 use tokio::{sync::Mutex, task::JoinHandle};
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -73,33 +74,22 @@ impl ScannerService {
             progress.lock().await.progress = i + 1;
             let host = format!("{}{}", target, i);
             let host = format!("http://{}:{}/", host, home_common::consts::SENSOR_PORT);
-            let Ok(result) = reqwest::Client::new()
-                .post(host.clone() + "pair")
-                .timeout(Duration::from_secs_f32(0.2))
-                .send_parse::<PairResponse, ErrorResponse>()
-                .await
-            else {
+            let Ok(id) = reqwest::Client::new().pair(host.as_str()).await else {
                 continue;
             };
-            let Ok(pair) = result else {
-                continue;
-            };
-            let Ok(result) = reqwest::Client::new()
-                .post(host + "sensor")
-                .header(home_common::consts::PAIR_HEADER_NAME, pair.id.as_str())
+            let Ok(Ok(sensor)) = reqwest::Client::new()
+                .get(host + "sensor")
+                .header(home_common::consts::PAIR_HEADER_NAME, id.as_str())
                 .send_parse::<SensorResponse, ErrorResponse>()
                 .await
             else {
-                continue;
-            };
-            let Ok(sensor) = result else {
                 continue;
             };
             let sensor_entity = SensorEntity {
                 name: sensor.name.as_str().to_string(),
                 location: sensor.location.as_str().to_string(),
                 features: sensor.features,
-                pair_id: pair.id.to_string(),
+                pair_id: id.to_string(),
             };
             progress.lock().await.sensors.push(sensor.into());
             sensors.push(sensor_entity);
