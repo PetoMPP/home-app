@@ -7,9 +7,13 @@ edition = "2021"
 axum = { workspace = true }
 askama = { workspace = true }
 chrono = { workspace = true }
+deadpool = { workspace = true }
+deadpool-r2d2 = { workspace = true }
 deref-derive = { workspace = true }
 heapless = { workspace = true }
 home-common = { path = "../home-common" }
+hmac = { workspace = true }
+jwt = { workspace = true }
 pnet = { workspace = true }
 r2d2_sqlite = { workspace = true }
 r2d2 = { workspace = true }
@@ -18,12 +22,14 @@ reqwest = { workspace = true }
 serde = { workspace = true }
 serde_derive = { workspace = true }
 serde_json = { workspace = true }
+sha2 = { workspace = true }
 tokio = { workspace = true }
 tower = { workspace = true }
 tower-http = { workspace = true }
 tower-livereload = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
+urandom = { workspace = true }
 # Optional dependencies
 openssl = { workspace = true, optional = true }
 
