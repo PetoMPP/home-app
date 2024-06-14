@@ -38,6 +38,7 @@ async fn main() {
     let mut app = Router::new()
         // register our webapp
         .route("/", axum::routing::get(website::home::home))
+        .route("/login", get(website::login::login))
         .route("/sensors", get(website::home::get_sensors))
         .route("/scanner", get(website::scanner::scanner))
         .route("/scan", post(website::scanner::scan))

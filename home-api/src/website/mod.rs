@@ -3,6 +3,7 @@ use axum::{http::{HeaderMap, StatusCode}, response::Html};
 
 pub mod home;
 pub mod scanner;
+pub mod login;
 
 #[derive(Template)]
 #[template(path = "pages/error.html")]
