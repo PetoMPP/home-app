@@ -13,6 +13,7 @@ home-common = { path = "../home-common" }
 pnet = { workspace = true }
 r2d2_sqlite = { workspace = true }
 r2d2 = { workspace = true }
+refinery = { workspace = true }
 reqwest = { workspace = true }
 serde = { workspace = true }
 serde_derive = { workspace = true }

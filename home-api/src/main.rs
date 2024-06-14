@@ -14,6 +14,8 @@ mod services;
 mod sqlite_pool;
 mod website;
 
+refinery::embed_migrations!("migrations");
+
 #[tokio::main]
 async fn main() {
     // workaround for running the app from the root of the workspace
@@ -27,6 +29,11 @@ async fn main() {
         .init();
     #[cfg(not(debug_assertions))]
     tracing_subscriber::fmt().init();
+    // run migrations
+    {
+        let mut conn = r2d2_sqlite::rusqlite::Connection::open("home-api.db").expect("Failed to open database");
+        migrations::runner().run(&mut conn).expect("Failed to run migrations");
+    }
     // create a connection pool
     let man = SqliteConnectionManager::file("home-api.db");
     let pool = SqlitePool(r2d2::Pool::new(man).expect("Failed to create pool"));
