@@ -1,4 +1,4 @@
-use crate::sqlite_pool::SqlitePool;
+use crate::database::{DbPool, SensorDatabase};
 use askama::Template;
 use axum::{
     http::{HeaderMap, StatusCode},
@@ -20,11 +20,16 @@ pub struct HomeInnerTemplate {
 }
 
 pub async fn home(
-    Extension(pool): Extension<SqlitePool>,
+    Extension(pool): Extension<DbPool>,
     headers: HeaderMap,
 ) -> Result<Html<String>, (StatusCode, String)> {
-    let sensors = pool
+    let conn = pool
+        .get()
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let sensors = conn
         .get_sensors()
+        .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
     match headers.contains_key("Hx-Request") {
@@ -40,10 +45,15 @@ pub struct SensorRowsTemplate {
 }
 
 pub async fn get_sensors(
-    Extension(pool): Extension<SqlitePool>,
+    Extension(pool): Extension<DbPool>,
 ) -> Result<Html<String>, (StatusCode, String)> {
-    let sensors = pool
+    let conn = pool
+        .get()
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let sensors = conn
         .get_sensors()
+        .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
     Ok(Html(SensorRowsTemplate { sensors }.render().unwrap()))

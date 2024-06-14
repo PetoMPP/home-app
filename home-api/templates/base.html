@@ -5,6 +5,7 @@
     <script src="/assets/htmx.min.js"></script>
     <script src="/assets/loading-states.js"></script>
     <script src="/assets/ws.js"></script>
+    <script src="/assets/response-targets.js"></script>
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -16,7 +17,7 @@
     {% endblock %}
 </head>
 
-<body class="flex flex-col min-h-[100vh]" hx-ext="loading-states,ws">
+<body class="flex flex-col min-h-[100vh]" hx-ext="loading-states,ws,response-targets">
     {% include "components/navbar.html" %}
     <div class="drawer">
         <input id="menu-drawer" type="checkbox" class="drawer-toggle" />
