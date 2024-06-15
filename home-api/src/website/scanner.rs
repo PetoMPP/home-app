@@ -1,6 +1,5 @@
 use crate::{
-    models::User,
-    services::scanner_service::{ScanProgress, ScannerService, ScannerState},
+    database::DbPool, models::{auth::Token, User}, services::scanner_service::{ScanProgress, ScannerService, ScannerState}
 };
 use askama::Template;
 use axum::{
@@ -10,7 +9,9 @@ use axum::{
     },
     http::HeaderMap,
     response::{Html, IntoResponse},
+    Extension,
 };
+use reqwest::StatusCode;
 use std::{net::SocketAddr, sync::Arc};
 use tokio::sync::Mutex;
 
@@ -31,11 +32,14 @@ pub struct ScannerInnerTemplate {
 
 pub async fn scanner(
     State(scanner): State<Arc<Mutex<ScannerService>>>,
-    current_user: Option<User>,
+    Extension(pool): Extension<DbPool>,
+    token: Option<Token>,
     headers: HeaderMap,
-) -> Html<String> {
+) -> Result<Html<String>, (StatusCode, String)> {
+    let conn = pool.get().await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let current_user = Token::get_valid_user(token, &conn).await?;
     let state = scanner.lock().await.state().await;
-    match should_load_inner(&headers) {
+    Ok(match should_load_inner(&headers) {
         true => Html(ScannerInnerTemplate { state }.render().unwrap()),
         false => Html(
             ScannerTemplate {
@@ -45,7 +49,7 @@ pub async fn scanner(
             .render()
             .unwrap(),
         ),
-    }
+    })
 }
 
 pub async fn scan(State(scanner): State<Arc<Mutex<ScannerService>>>) -> Html<String> {

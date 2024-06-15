@@ -12,6 +12,7 @@ use models::{
     NormalizedString,
 };
 use r2d2_sqlite::SqliteConnectionManager;
+use reqwest::StatusCode;
 use services::scanner_service::ScannerService;
 use std::{net::SocketAddr, sync::Arc};
 use tokio::sync::Mutex;
@@ -105,22 +106,24 @@ async fn auth(
     headers: HeaderMap,
     request: Request,
     next: Next,
-) -> Result<Response, Redirect> {
-    println!("{:?}", headers);
+) -> Result<Response, (StatusCode, HeaderMap)> {
+    let mut header_map = HeaderMap::new();
+    header_map.insert("HX-Redirect", "/login".parse().unwrap());
+    let error = (StatusCode::UNAUTHORIZED, header_map);
     let (claims, token) = Token::try_from(&headers)
         .and_then(|t| (&t).try_into().map(|c: Claims| (c, t)))
-        .map_err(|_| Redirect::to("/login"))?;
-    let conn = pool.get().await.map_err(|_| Redirect::to("/login"))?;
+        .map_err(|_| error.clone())?;
+    let conn = pool.get().await.map_err(|_| error.clone())?;
     let normalized_name = NormalizedString::new(&claims.sub);
     let _session = conn
         .get_session(normalized_name.clone(), token.clone())
         .await
         .ok()
         .and_then(|s| s)
-        .ok_or(Redirect::to("/login"))?;
+        .ok_or(error.clone())?;
     if !claims.validate() {
         conn.delete_session(normalized_name, token).await.ok();
-        return Err(Redirect::to("/login"));
+        return Err(error);
     }
 
     Ok(next.run(request).await)
