@@ -10,6 +10,14 @@ pub mod login;
 pub mod menu;
 pub mod scanner;
 
+pub fn should_load_inner(headers: &HeaderMap) -> bool {
+    headers.contains_key("Hx-Request")
+        && !headers
+            .get("Hx-Current-Url")
+            .and_then(|v| v.to_str().ok().map(|s| s.ends_with("/login")))
+            .unwrap_or_default()
+}
+
 #[derive(Template)]
 #[template(path = "pages/error.html")]
 pub struct ErrorTemplate {

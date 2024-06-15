@@ -10,6 +10,8 @@ use axum::{
 };
 use home_common::models::Sensor;
 
+use super::should_load_inner;
+
 #[derive(Template)]
 #[template(path = "pages/home.html")]
 pub struct HomeTemplate {
@@ -37,7 +39,7 @@ pub async fn home(
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    match headers.contains_key("Hx-Request") {
+    match should_load_inner(&headers) {
         true => Ok(Html(HomeInnerTemplate { sensors }.render().unwrap())),
         false => Ok(Html(
             HomeTemplate {
