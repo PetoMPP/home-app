@@ -1,4 +1,7 @@
-use crate::database::{DbPool, SensorDatabase};
+use crate::{
+    database::{DbPool, sensors::SensorDatabase},
+    models::User,
+};
 use askama::Template;
 use axum::{
     http::{HeaderMap, StatusCode},
@@ -10,6 +13,7 @@ use home_common::models::Sensor;
 #[derive(Template)]
 #[template(path = "pages/home.html")]
 pub struct HomeTemplate {
+    pub current_user: Option<User>,
     pub sensors: Vec<Sensor>,
 }
 
@@ -21,6 +25,7 @@ pub struct HomeInnerTemplate {
 
 pub async fn home(
     Extension(pool): Extension<DbPool>,
+    current_user: Option<User>,
     headers: HeaderMap,
 ) -> Result<Html<String>, (StatusCode, String)> {
     let conn = pool
@@ -34,7 +39,14 @@ pub async fn home(
 
     match headers.contains_key("Hx-Request") {
         true => Ok(Html(HomeInnerTemplate { sensors }.render().unwrap())),
-        false => Ok(Html(HomeTemplate { sensors }.render().unwrap())),
+        false => Ok(Html(
+            HomeTemplate {
+                sensors,
+                current_user,
+            }
+            .render()
+            .unwrap(),
+        )),
     }
 }
 
