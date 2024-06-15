@@ -1,7 +1,8 @@
 <h1 class="text-2xl font-semibold pb-4">Login</h1>
 {% if let Some(error) = error %}
 <div id="login-alert" class="animate-fade-down">
-    <div id="login-alert-inner" role="alert" class="alert alert-warning animate-fade-down animate-reverse animate-delay-[5000ms]">
+    <div id="login-alert-inner" role="alert"
+        class="alert alert-warning animate-fade-down animate-reverse animate-delay-[5000ms]">
         <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -18,7 +19,7 @@
     }
 </script>
 {% endif %}
-<form class="p-4 flex flex-col gap-4 min-w-96" hx-post="/login" hx-target-error="#page-content"
+<form class="p-4 flex flex-col gap-4 min-w-96" hx-post="/login" hx-target-error="#page-content" hx-push-url="true"
     hx-target="#page-content" hx-swap="innerHtml">
     <label class="input input-bordered flex items-center gap-2">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4 opacity-70">

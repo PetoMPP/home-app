@@ -1,4 +1,7 @@
+use auth::{Claims, Token};
+use axum::{extract::FromRequestParts, http::request::Parts};
 use deref_derive::Deref;
+use reqwest::StatusCode;
 
 #[derive(Debug, Clone, Default, Deref)]
 pub struct NormalizedString(String);
@@ -9,11 +12,50 @@ impl NormalizedString {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct User {
+    pub name: String,
+}
+
+impl<S> FromRequestParts<S> for User {
+    type Rejection = StatusCode;
+
+    #[doc = " Perform the extraction."]
+    #[must_use]
+    #[allow(clippy::type_complexity, clippy::type_repetition_in_bounds)]
+    fn from_request_parts<'life0, 'life1, 'async_trait>(
+        parts: &'life0 mut Parts,
+        _state: &'life1 S,
+    ) -> ::core::pin::Pin<
+        Box<
+            dyn ::core::future::Future<Output = Result<Self, Self::Rejection>>
+                + ::core::marker::Send
+                + 'async_trait,
+        >,
+    >
+    where
+        'life0: 'async_trait,
+        'life1: 'async_trait,
+        Self: 'async_trait,
+    {
+        Box::pin(async move {
+            let token = Token::try_from(&parts.headers).map_err(|_| StatusCode::UNAUTHORIZED)?;
+            let claims: Claims = (&token).try_into().map_err(|_| StatusCode::UNAUTHORIZED)?;
+            if !claims.validate() {
+                return Err(StatusCode::UNAUTHORIZED);
+            }
+            Self::try_from(claims).map_err(|_| StatusCode::UNAUTHORIZED)
+        })
+    }
+}
+
 pub mod auth {
-    use super::db::UserEntity;
+    use super::{db::UserEntity, User};
+    use axum::http::HeaderMap;
     use deref_derive::Deref;
-    use hmac::{digest::KeyInit, Hmac};
+    use hmac::Hmac;
     use jwt::{SignWithKey, VerifyWithKey};
+    use reqwest::header::COOKIE;
     use sha2::{Digest, Sha256};
     use std::{collections::BTreeMap, fmt::Display, str::FromStr};
 
@@ -69,17 +111,52 @@ pub mod auth {
     pub struct Token(String);
 
     impl Token {
-        pub fn new(user: &UserEntity) -> Result<String, Box<dyn std::error::Error>> {
+        pub fn new(user: &UserEntity) -> Result<Self, Box<dyn std::error::Error>> {
+            use hmac::digest::KeyInit;
             let key: Hmac<Sha256> = Hmac::new_from_slice(env!("API_SECRET").as_bytes()).unwrap();
             let claims: BTreeMap<String, String> = Claims::try_from(user.clone())?.into();
-            Ok(claims.sign_with_key(&key)?)
+            Ok(Self(claims.sign_with_key(&key)?))
         }
+    }
 
-        pub fn validate_token(token: &str) -> Result<Claims, Box<dyn std::error::Error>> {
+    impl TryInto<Claims> for &Token {
+        type Error = Box<dyn std::error::Error>;
+
+        fn try_into(self) -> Result<Claims, Self::Error> {
+            use hmac::digest::KeyInit;
             let key: Hmac<Sha256> = Hmac::new_from_slice(env!("API_SECRET").as_bytes()).unwrap();
-            let token_data: BTreeMap<String, String> = token.verify_with_key(&key)?;
+            let token_data: BTreeMap<String, String> = self.verify_with_key(&key)?;
 
             Claims::try_from(token_data)
+        }
+    }
+
+    impl TryFrom<&HeaderMap> for Token {
+        type Error = Box<dyn std::error::Error>;
+
+        fn try_from(value: &HeaderMap) -> Result<Self, Self::Error> {
+            Ok(Self(
+                value
+                    .get(COOKIE)
+                    .and_then(|cookie| {
+                        cookie.to_str().ok().and_then(|cookie| {
+                            cookie
+                                .split(';')
+                                .find(|cookie| cookie.starts_with("session="))
+                                .map(|cookie| cookie.trim_start_matches("session="))
+                        })
+                    })
+                    .ok_or("No session cookie")?
+                    .to_string(),
+            ))
+        }
+    }
+
+    impl FromStr for Token {
+        type Err = ();
+
+        fn from_str(s: &str) -> Result<Self, Self::Err> {
+            Ok(Self(s.to_string()))
         }
     }
 
@@ -93,6 +170,12 @@ pub mod auth {
     const SUB_CLAIM: &str = "sub";
     const EXP_CLAIM: &str = "exp";
     const ACS_CLAIM: &str = "acs";
+
+    impl Claims {
+        pub fn validate(&self) -> bool {
+            (self.exp as i64) - chrono::Utc::now().timestamp() > 0
+        }
+    }
 
     impl From<Claims> for BTreeMap<String, String> {
         fn from(val: Claims) -> Self {
@@ -111,10 +194,7 @@ pub mod auth {
             let sub = value.get(SUB_CLAIM).ok_or("Missing sub claim")?.parse()?;
             let exp = value.get(EXP_CLAIM).ok_or("Missing exp claim")?.parse()?;
             let acs = value.get(ACS_CLAIM).ok_or("Missing acs claim")?.parse()?;
-            match (exp as i64) - chrono::Utc::now().timestamp() {
-                ref x if x < &0 => Result::Err("Token expired")?,
-                _ => Ok(Self { sub, exp, acs }),
-            }
+            Ok(Self { sub, exp, acs })
         }
     }
 
@@ -127,10 +207,19 @@ pub mod auth {
             }
         }
     }
+
+    impl Into<User> for Claims {
+        fn into(self) -> User {
+            User { name: self.sub }
+        }
+    }
 }
 
 pub mod db {
-    use super::{auth::Password, NormalizedString};
+    use super::{
+        auth::{Password, Token},
+        NormalizedString, User,
+    };
     use crate::database::FromRow;
     use home_common::models::Sensor;
     use r2d2_sqlite::rusqlite;
@@ -150,6 +239,27 @@ pub mod db {
                 normalized_name: NormalizedString::new(row.get::<_, String>(1)?),
                 password: Password::from_str(&row.get::<_, String>(2)?)
                     .map_err(|_| rusqlite::Error::InvalidQuery)?,
+            })
+        }
+    }
+
+    impl Into<User> for UserEntity {
+        fn into(self) -> User {
+            User { name: self.name }
+        }
+    }
+
+    #[derive(Debug, Clone)]
+    pub struct UserSession {
+        pub normalized_name: NormalizedString,
+        pub token: Token,
+    }
+
+    impl FromRow for UserSession {
+        fn from_row(row: &r2d2_sqlite::rusqlite::Row) -> r2d2_sqlite::rusqlite::Result<Self> {
+            Ok(UserSession {
+                normalized_name: NormalizedString::new(row.get::<_, String>(0)?),
+                token: Token::from_str(&row.get::<_, String>(1)?).unwrap(),
             })
         }
     }

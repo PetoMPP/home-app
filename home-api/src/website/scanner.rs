@@ -1,10 +1,15 @@
-use crate::services::scanner_service::{ScanProgress, ScannerService, ScannerState};
+use crate::{
+    models::User,
+    services::scanner_service::{ScanProgress, ScannerService, ScannerState},
+};
 use askama::Template;
 use axum::{
     extract::{
         ws::{Message, WebSocket},
         ConnectInfo, State, WebSocketUpgrade,
-    }, http::HeaderMap, response::{Html, IntoResponse}
+    },
+    http::HeaderMap,
+    response::{Html, IntoResponse},
 };
 use std::{net::SocketAddr, sync::Arc};
 use tokio::sync::Mutex;
@@ -12,6 +17,7 @@ use tokio::sync::Mutex;
 #[derive(Template)]
 #[template(path = "pages/scanner.html")]
 pub struct ScannerTemplate {
+    pub current_user: Option<User>,
     pub state: ScannerState,
 }
 
@@ -23,12 +29,20 @@ pub struct ScannerInnerTemplate {
 
 pub async fn scanner(
     State(scanner): State<Arc<Mutex<ScannerService>>>,
+    current_user: Option<User>,
     headers: HeaderMap,
 ) -> Html<String> {
     let state = scanner.lock().await.state().await;
     match headers.contains_key("Hx-Request") {
         true => Html(ScannerInnerTemplate { state }.render().unwrap()),
-        false => Html(ScannerTemplate { state }.render().unwrap()),
+        false => Html(
+            ScannerTemplate {
+                state,
+                current_user,
+            }
+            .render()
+            .unwrap(),
+        ),
     }
 }
 
