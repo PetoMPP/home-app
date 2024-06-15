@@ -9,8 +9,7 @@
         <li><a class="bg-neutral text-neutral-content" hx-get="/scanner" hx-push-url="true" hx-target="#page-content"
                         hx-swap="innerHtml">Scanner</a>
         </li>
-        <li><a class="bg-warning text-warning-content" hx-post="/logout" hx-push-url="true" hx-target="closest body"
-                        hx-swap="innerHtml">Logout</a>
+        <li><a class="bg-warning text-warning-content" hx-post="/logout" hx-push-url="true">Logout</a>
         </li>
         {% when None %}
         <li><a class="bg-primary text-primary-content" hx-get="/login" hx-push-url="true" hx-target="closest body"

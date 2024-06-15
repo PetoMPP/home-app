@@ -1,7 +1,4 @@
-use auth::{Claims, Token};
-use axum::{extract::FromRequestParts, http::request::Parts};
 use deref_derive::Deref;
-use reqwest::StatusCode;
 
 #[derive(Debug, Clone, Default, Deref)]
 pub struct NormalizedString(String);
@@ -17,45 +14,18 @@ pub struct User {
     pub name: String,
 }
 
-impl<S> FromRequestParts<S> for User {
-    type Rejection = StatusCode;
-
-    #[doc = " Perform the extraction."]
-    #[must_use]
-    #[allow(clippy::type_complexity, clippy::type_repetition_in_bounds)]
-    fn from_request_parts<'life0, 'life1, 'async_trait>(
-        parts: &'life0 mut Parts,
-        _state: &'life1 S,
-    ) -> ::core::pin::Pin<
-        Box<
-            dyn ::core::future::Future<Output = Result<Self, Self::Rejection>>
-                + ::core::marker::Send
-                + 'async_trait,
-        >,
-    >
-    where
-        'life0: 'async_trait,
-        'life1: 'async_trait,
-        Self: 'async_trait,
-    {
-        Box::pin(async move {
-            let token = Token::try_from(&parts.headers).map_err(|_| StatusCode::UNAUTHORIZED)?;
-            let claims: Claims = (&token).try_into().map_err(|_| StatusCode::UNAUTHORIZED)?;
-            if !claims.validate() {
-                return Err(StatusCode::UNAUTHORIZED);
-            }
-            Self::try_from(claims).map_err(|_| StatusCode::UNAUTHORIZED)
-        })
-    }
-}
-
 pub mod auth {
+    use super::NormalizedString;
     use super::{db::UserEntity, User};
+    use crate::database::user_sessions::UserSessionDatabase;
+    use crate::database::DbConn;
     use axum::http::HeaderMap;
+    use axum::{extract::FromRequestParts, http::request::Parts};
     use deref_derive::Deref;
     use hmac::Hmac;
     use jwt::{SignWithKey, VerifyWithKey};
     use reqwest::header::COOKIE;
+    use reqwest::StatusCode;
     use sha2::{Digest, Sha256};
     use std::{collections::BTreeMap, fmt::Display, str::FromStr};
 
@@ -116,6 +86,51 @@ pub mod auth {
             let key: Hmac<Sha256> = Hmac::new_from_slice(env!("API_SECRET").as_bytes()).unwrap();
             let claims: BTreeMap<String, String> = Claims::try_from(user.clone())?.into();
             Ok(Self(claims.sign_with_key(&key)?))
+        }
+
+        pub async fn get_valid_user(
+            opt_self: Option<Self>,
+            conn: &DbConn,
+        ) -> Result<Option<User>, (StatusCode, String)> {
+            let Some(token) = opt_self else {
+                return Ok(None);
+            };
+            let Ok(claims) = TryInto::<Claims>::try_into(&token) else {
+                return Ok(None);
+            };
+            let normalized_name = NormalizedString::new(&claims.sub);
+            Ok(conn
+                .get_session(normalized_name, token)
+                .await
+                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+                .map(|_| claims.into()))
+        }
+    }
+
+    impl<S> FromRequestParts<S> for Token {
+        type Rejection = StatusCode;
+
+        #[doc = " Perform the extraction."]
+        #[must_use]
+        #[allow(clippy::type_complexity, clippy::type_repetition_in_bounds)]
+        fn from_request_parts<'life0, 'life1, 'async_trait>(
+            parts: &'life0 mut Parts,
+            _state: &'life1 S,
+        ) -> ::core::pin::Pin<
+            Box<
+                dyn ::core::future::Future<Output = Result<Self, Self::Rejection>>
+                    + ::core::marker::Send
+                    + 'async_trait,
+            >,
+        >
+        where
+            'life0: 'async_trait,
+            'life1: 'async_trait,
+            Self: 'async_trait,
+        {
+            Box::pin(async move {
+                Ok(Token::try_from(&parts.headers).map_err(|_| StatusCode::UNAUTHORIZED)?)
+            })
         }
     }
 

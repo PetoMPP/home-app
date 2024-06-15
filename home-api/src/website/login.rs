@@ -26,15 +26,23 @@ pub struct LoginInnerTemplate {
     pub error: Option<String>,
 }
 
-pub async fn login_page(current_user: Option<User>) -> Html<String> {
-    Html(
+pub async fn login_page(
+    token: Option<Token>,
+    Extension(pool): Extension<DbPool>,
+) -> Result<Html<String>, (StatusCode, String)> {
+    let conn = pool
+        .get()
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let current_user = Token::get_valid_user(token, &conn).await?;
+    Ok(Html(
         LoginTemplate {
             current_user: current_user.clone(),
             ..Default::default()
         }
         .render()
         .unwrap(),
-    )
+    ))
 }
 
 #[derive(Deserialize)]
@@ -103,7 +111,7 @@ pub async fn login(
                 )
             })?;
         header_map.insert(SET_COOKIE, format!("session={}", *token).parse().unwrap());
-        header_map.insert("HX-Location", "/".parse().unwrap());
+        header_map.insert("HX-Redirect", "/".parse().unwrap());
         Ok((StatusCode::OK, header_map))
     } else {
         Err((
@@ -164,6 +172,6 @@ pub async fn logout(
         })?;
     let mut header_map = HeaderMap::new();
     header_map.insert(SET_COOKIE, "session=;".parse().unwrap());
-    header_map.insert(LOCATION, "/".parse().unwrap());
-    Ok((StatusCode::SEE_OTHER, header_map))
+    header_map.insert("HX-Redirect", "/".parse().unwrap());
+    Ok((StatusCode::OK, header_map))
 }

@@ -1,6 +1,6 @@
 use crate::{
-    database::{DbPool, sensors::SensorDatabase},
-    models::User,
+    database::{sensors::SensorDatabase, DbPool},
+    models::{auth::Token, User},
 };
 use askama::Template;
 use axum::{
@@ -27,17 +27,21 @@ pub struct HomeInnerTemplate {
 
 pub async fn home(
     Extension(pool): Extension<DbPool>,
-    current_user: Option<User>,
+    token: Option<Token>,
     headers: HeaderMap,
 ) -> Result<Html<String>, (StatusCode, String)> {
     let conn = pool
         .get()
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    let sensors = conn
-        .get_sensors()
-        .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let current_user = Token::get_valid_user(token, &conn).await?;
+    let sensors = match current_user {
+        Some(_) => conn
+            .get_sensors()
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?,
+        None => vec![],
+    };
 
     match should_load_inner(&headers) {
         true => Ok(Html(HomeInnerTemplate { sensors }.render().unwrap())),
