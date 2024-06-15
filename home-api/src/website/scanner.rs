@@ -14,6 +14,8 @@ use axum::{
 use std::{net::SocketAddr, sync::Arc};
 use tokio::sync::Mutex;
 
+use super::should_load_inner;
+
 #[derive(Template)]
 #[template(path = "pages/scanner.html")]
 pub struct ScannerTemplate {
@@ -33,7 +35,7 @@ pub async fn scanner(
     headers: HeaderMap,
 ) -> Html<String> {
     let state = scanner.lock().await.state().await;
-    match headers.contains_key("Hx-Request") {
+    match should_load_inner(&headers) {
         true => Html(ScannerInnerTemplate { state }.render().unwrap()),
         false => Html(
             ScannerTemplate {

@@ -26,18 +26,15 @@ pub struct LoginInnerTemplate {
     pub error: Option<String>,
 }
 
-pub async fn login_page(headers: HeaderMap, current_user: Option<User>) -> Html<String> {
-    let login_tmpl = match headers.contains_key("Hx-Request") {
-        true => LoginInnerTemplate::default().render().unwrap(),
-        false => LoginTemplate {
+pub async fn login_page(current_user: Option<User>) -> Html<String> {
+    Html(
+        LoginTemplate {
             current_user: current_user.clone(),
             ..Default::default()
         }
         .render()
         .unwrap(),
-    };
-
-    Html(login_tmpl)
+    )
 }
 
 #[derive(Deserialize)]
@@ -106,8 +103,8 @@ pub async fn login(
                 )
             })?;
         header_map.insert(SET_COOKIE, format!("session={}", *token).parse().unwrap());
-        header_map.insert(LOCATION, "/".parse().unwrap());
-        Ok((StatusCode::SEE_OTHER, header_map))
+        header_map.insert("HX-Location", "/".parse().unwrap());
+        Ok((StatusCode::OK, header_map))
     } else {
         Err((
             StatusCode::UNAUTHORIZED,
