@@ -10,7 +10,7 @@ use home_common::models::{SensorDto, SensorResponse};
 pub fn get() -> Route {
     Route {
         is_match: |r| r.method == "GET" && r.route == "/sensor",
-        response: |_r| {
+        response: |_r, _paired| {
             let Ok((store, usage)) = FlashStorage::new().get_with_usage() else {
                 return ResponseBuilder::<'_, usize>::default()
                     .with_code(StatusCode::INTERNAL_SERVER_ERROR)
@@ -43,7 +43,12 @@ pub fn get() -> Route {
 pub fn post() -> Route {
     Route {
         is_match: |r| r.method == "POST" && r.route == "/sensor",
-        response: |r| {
+        response: |r, paired| {
+            if !paired {
+                return ResponseBuilder::<'_, usize>::default()
+                    .with_code(StatusCode::FORBIDDEN)
+                    .into();
+            }
             let mut flash_storage = FlashStorage::new();
             let Ok(store) = flash_storage.get() else {
                 return ResponseBuilder::<'_, usize>::default()

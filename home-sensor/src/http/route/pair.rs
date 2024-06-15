@@ -15,7 +15,7 @@ pub fn clear_keys() {
 pub fn pair() -> Route {
     Route {
         is_match: |r| r.method == "POST" && r.route == "/pair",
-        response: |_| {
+        response: |_, _| {
             let mut id = Ok(new_id());
             critical_section::with(|cs| {
                 if let Err(eid) = CURRENT_KEYS.borrow_ref_mut(cs).push(id.clone().unwrap()) {
@@ -41,7 +41,7 @@ pub fn pair() -> Route {
 pub fn confirm() -> Route {
     Route {
         is_match: |r| r.method == "POST" && r.route == "/pair/confirm",
-        response: |r| {
+        response: |r, _paired| {
             let Some(id) = r
                 .headers
                 .get(home_common::consts::PAIR_HEADER_NAME)

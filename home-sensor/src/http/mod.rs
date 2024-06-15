@@ -1,8 +1,4 @@
-use crate::{
-    models::http::{Request, ResponseBuilder},
-    storage::StoreProvider,
-    BUTTON,
-};
+use crate::{models::http::Request, storage::StoreProvider, BUTTON};
 use core::{borrow::BorrowMut, cell::RefCell};
 use critical_section::Mutex;
 use embedded_io::{Read, Write};
@@ -10,7 +6,6 @@ use esp_hal::macros::handler;
 use esp_println::println;
 use esp_storage::FlashStorage;
 use esp_wifi::{current_millis, wifi::WifiStaDevice, wifi_interface::Socket};
-use home_common::models::ErrorResponse;
 use route::pair::CURRENT_KEYS;
 use status::StatusCode;
 
@@ -113,10 +108,12 @@ pub fn server_loop<'s, 'r>(socket: &'s mut Socket<WifiStaDevice>) -> ! {
             let pair_route = route::pair::pair();
             let pair_confirm_route = route::pair::confirm();
             let response = match pairing {
-                true if (pair_route.is_match)(&request) => (pair_route.response)(&request),
-                true if (pair_confirm_route.is_match)(&request) => (pair_confirm_route.response)(&request),
+                true if (pair_route.is_match)(&request) => (pair_route.response)(&request, true),
+                true if (pair_confirm_route.is_match)(&request) => {
+                    (pair_confirm_route.response)(&request, true)
+                }
                 _ => {
-                    let valid = request
+                    let paired = request
                         .headers
                         .get(home_common::consts::PAIR_HEADER_NAME)
                         .and_then(|id| {
@@ -127,19 +124,9 @@ pub fn server_loop<'s, 'r>(socket: &'s mut Socket<WifiStaDevice>) -> ! {
                         })
                         .unwrap_or_default();
 
-                    match (
-                        valid,
-                        route::routes().into_iter().find(|r| (r.is_match)(&request)),
-                    ) {
-                        (true, Some(route)) => (route.response)(&request),
-                        (true, None) => StatusCode::NOT_FOUND.into(),
-                        _ => {
-                            let error = ErrorResponse { error: "To connect use /pair endpoint and pairing button on the device.".try_into().unwrap() };
-                            ResponseBuilder::default()
-                                .with_code(StatusCode::FORBIDDEN)
-                                .with_data(&error)
-                                .into()
-                        }
+                    match route::routes().into_iter().find(|r| (r.is_match)(&request)) {
+                        Some(route) => (route.response)(&request, paired),
+                        None => StatusCode::NOT_FOUND.into(),
                     }
                 }
             };
