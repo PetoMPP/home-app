@@ -48,7 +48,13 @@ pub async fn scanner(
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
     let current_user = Token::get_valid_user(token, &conn).await?;
-    let state = scanner.lock().await.state().await;
+    let mut state = scanner.lock().await.state().await;
+    if let ScannerState::Idle(Some(result)) = &mut state {
+        result
+            .check_sensors(&pool)
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    }
     Ok(match is_hx_request(&headers) {
         true => Html(
             ScannerInnerTemplate {
