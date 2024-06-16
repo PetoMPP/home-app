@@ -12,8 +12,9 @@ use axum::{
 pub mod home;
 pub mod login;
 pub mod scanner;
+pub mod sensors;
 
-pub fn should_load_inner(headers: &HeaderMap) -> bool {
+pub fn is_hx_request(headers: &HeaderMap) -> bool {
     headers.contains_key("Hx-Request")
 }
 
@@ -36,29 +37,32 @@ pub async fn not_found(
     headers: HeaderMap,
     Extension(pool): Extension<DbPool>,
     token: Option<Token>,
-) -> Result<Html<String>, (StatusCode, String)> {
+) -> Result<(StatusCode, Html<String>), (StatusCode, String)> {
     let conn = pool
         .get()
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
     let current_user = Token::get_valid_user(token, &conn).await?;
-    Ok(match should_load_inner(&headers) {
-        true => Html(
-            ErrorInnerTemplate {
-                status: StatusCode::NOT_FOUND,
-                message: "Not Found".to_string(),
-            }
-            .render()
-            .unwrap(),
-        ),
-        false => Html(
-            ErrorTemplate {
-                current_user,
-                status: StatusCode::NOT_FOUND,
-                message: "Not Found".to_string(),
-            }
-            .render()
-            .unwrap(),
-        ),
-    })
+    Ok((
+        StatusCode::NOT_FOUND,
+        match is_hx_request(&headers) {
+            true => Html(
+                ErrorInnerTemplate {
+                    status: StatusCode::NOT_FOUND,
+                    message: "Not Found".to_string(),
+                }
+                .render()
+                .unwrap(),
+            ),
+            false => Html(
+                ErrorTemplate {
+                    current_user,
+                    status: StatusCode::NOT_FOUND,
+                    message: "Not Found".to_string(),
+                }
+                .render()
+                .unwrap(),
+            ),
+        },
+    ))
 }

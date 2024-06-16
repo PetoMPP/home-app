@@ -2,11 +2,10 @@
 <div class="flex flex-row gap-6 align-center">
     <p class="text-xl">Here are the sensors available:</p>
     <a class="btn btn-primary" hx-get="/sensors" hx-trigger="click" hx-target="#sensor-table-body"
-        hx-on::before-request="clear_rows(this)" hx-on::after-request="this.className = 'btn btn-primary'">Refresh</a>
+        hx-on::before-request="clear_rows(this)" data-loading-class="btn-disabled">Refresh</a>
 </div>
 <script>
     function clear_rows(el) {
-        el.className = 'btn btn-disabled';
         var children = document.getElementById('sensor-table-body').children;
         for (var i = children.length - 1; i > 0; i--) {
             children[i].remove();

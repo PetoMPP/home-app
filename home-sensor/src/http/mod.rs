@@ -1,11 +1,17 @@
-use crate::{models::http::Request, storage::StoreProvider, BUTTON};
-use core::{borrow::BorrowMut, cell::RefCell};
+use crate::{
+    models::http::{Request, Response, ResponseBuilder},
+    storage::StoreProvider,
+    BUTTON,
+};
+use core::{borrow::BorrowMut, cell::RefCell, str::FromStr};
 use critical_section::Mutex;
 use embedded_io::{Read, Write};
 use esp_hal::macros::handler;
 use esp_println::println;
 use esp_storage::FlashStorage;
 use esp_wifi::{current_millis, wifi::WifiStaDevice, wifi_interface::Socket};
+use heapless::String;
+use home_common::models::ErrorResponse;
 use route::pair::CURRENT_KEYS;
 use status::StatusCode;
 
@@ -126,7 +132,12 @@ pub fn server_loop<'s, 'r>(socket: &'s mut Socket<WifiStaDevice>) -> ! {
 
                     match route::routes().into_iter().find(|r| (r.is_match)(&request)) {
                         Some(route) => (route.response)(&request, paired),
-                        None => StatusCode::NOT_FOUND.into(),
+                        None => ResponseBuilder::default()
+                            .with_code(StatusCode::NOT_FOUND)
+                            .with_data(&ErrorResponse {
+                                error: String::from_str("Not found").unwrap(),
+                            })
+                            .into(),
                     }
                 }
             };

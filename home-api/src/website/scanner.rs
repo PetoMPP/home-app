@@ -1,33 +1,40 @@
+use super::{is_hx_request, sensors::SensorActions};
 use crate::{
-    database::DbPool, models::{auth::Token, User}, services::scanner_service::{ScanProgress, ScannerService, ScannerState}
+    database::{sensors::SensorDatabase, DbPool},
+    models::{auth::Token, User},
+    services::{
+        scanner_service::{ScanProgress, ScannerService, ScannerState},
+        sensor_service::SensorService,
+    },
+    website::sensors::SensorRowTemplate,
 };
 use askama::Template;
 use axum::{
     extract::{
         ws::{Message, WebSocket},
-        ConnectInfo, State, WebSocketUpgrade,
+        ConnectInfo, Path, State, WebSocketUpgrade,
     },
     http::HeaderMap,
     response::{Html, IntoResponse},
     Extension,
 };
-use reqwest::StatusCode;
+use reqwest::{Client, StatusCode};
 use std::{net::SocketAddr, sync::Arc};
 use tokio::sync::Mutex;
-
-use super::should_load_inner;
 
 #[derive(Template)]
 #[template(path = "pages/scanner.html")]
 pub struct ScannerTemplate {
     pub current_user: Option<User>,
     pub state: ScannerState,
+    pub action_type: SensorActions,
 }
 
 #[derive(Template)]
 #[template(path = "pages/scanner-inner.html")]
 pub struct ScannerInnerTemplate {
     pub state: ScannerState,
+    pub action_type: SensorActions,
 }
 
 pub async fn scanner(
@@ -36,15 +43,26 @@ pub async fn scanner(
     token: Option<Token>,
     headers: HeaderMap,
 ) -> Result<Html<String>, (StatusCode, String)> {
-    let conn = pool.get().await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let conn = pool
+        .get()
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
     let current_user = Token::get_valid_user(token, &conn).await?;
     let state = scanner.lock().await.state().await;
-    Ok(match should_load_inner(&headers) {
-        true => Html(ScannerInnerTemplate { state }.render().unwrap()),
+    Ok(match is_hx_request(&headers) {
+        true => Html(
+            ScannerInnerTemplate {
+                state,
+                action_type: SensorActions::Scanner,
+            }
+            .render()
+            .unwrap(),
+        ),
         false => Html(
             ScannerTemplate {
                 state,
                 current_user,
+                action_type: SensorActions::Scanner,
             }
             .render()
             .unwrap(),
@@ -56,6 +74,7 @@ pub async fn scan(State(scanner): State<Arc<Mutex<ScannerService>>>) -> Html<Str
     Html(
         ScannerInnerTemplate {
             state: scanner.lock().await.init().await,
+            action_type: SensorActions::Scanner,
         }
         .render()
         .unwrap(),
@@ -67,10 +86,39 @@ pub async fn cancel(State(scanner): State<Arc<Mutex<ScannerService>>>) -> Html<S
     Html(
         ScannerInnerTemplate {
             state: scanner.lock().await.state().await,
+            action_type: SensorActions::Scanner,
         }
         .render()
         .unwrap(),
     )
+}
+
+pub async fn pair_sensor(
+    Extension(pool): Extension<DbPool>,
+    Path(host): Path<String>,
+) -> Result<Html<String>, (StatusCode, String)> {
+    let host = host.replace("-", ".");
+    let sensor = Client::new()
+        .pair(&host)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let conn = pool
+        .get()
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let sensor = conn
+        .create_sensor(sensor)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    Ok(Html(
+        SensorRowTemplate {
+            sensor,
+            action_type: SensorActions::Scanner,
+        }
+        .render()
+        .unwrap(),
+    ))
 }
 
 #[derive(Template)]
@@ -109,7 +157,12 @@ async fn handle_status_socket(
                     ScannerState::Idle(_) | ScannerState::Error(_) => {
                         if socket
                             .send(Message::Text(
-                                ScannerInnerTemplate { state }.render().unwrap(),
+                                ScannerInnerTemplate {
+                                    state,
+                                    action_type: SensorActions::Scanner,
+                                }
+                                .render()
+                                .unwrap(),
                             ))
                             .await
                             .is_err()
