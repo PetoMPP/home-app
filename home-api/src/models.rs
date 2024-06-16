@@ -284,7 +284,8 @@ pub mod db {
         pub name: String,
         pub location: String,
         pub features: u32,
-        pub pair_id: String,
+        pub host: String,
+        pub pair_id: Option<String>,
     }
 
     impl FromRow for SensorEntity {
@@ -293,7 +294,8 @@ pub mod db {
                 name: row.get::<_, String>(0)?,
                 location: row.get::<_, String>(1)?,
                 features: row.get(2)?,
-                pair_id: row.get::<_, String>(3)?,
+                host: row.get::<_, String>(3)?,
+                pair_id: row.get::<_, Option<String>>(4)?,
             })
         }
     }

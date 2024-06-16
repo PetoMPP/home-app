@@ -7,10 +7,7 @@ use crate::{
 };
 use askama::Template;
 use axum::{http::HeaderMap, response::Html, Extension, Form};
-use reqwest::{
-    header::{LOCATION, SET_COOKIE},
-    StatusCode,
-};
+use reqwest::{header::SET_COOKIE, StatusCode};
 use serde::Deserialize;
 
 #[derive(Template, Default)]

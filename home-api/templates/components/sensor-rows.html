@@ -1,4 +1,4 @@
-<tr data-loading="contents" class="hidden w-full">
+<tr data-loading="contents" data-loading-path="/sensors" class="hidden w-full border-b border-base-content">
     <td colspan="2" class="w-full">
         <div class="flex justify-center">
             <span class="loading loading-spinner loading-lg"></span>
@@ -6,9 +6,5 @@
     </td>
 </tr>
 {% for sensor in sensors %}
-<tr>
-    <td> {{ sensor.name }} </td>
-    <td> {{ sensor.location }} </td>
-    <td> {{ sensor.features }} </td>
-</tr>
+{% include "components/sensor-row.html" %}
 {% endfor %}

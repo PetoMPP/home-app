@@ -2,8 +2,8 @@ use axum::{
     extract::{Request, State},
     http::HeaderMap,
     middleware::{self, Next},
-    response::{Redirect, Response},
-    routing::{get, post},
+    response::Response,
+    routing::{delete, get, post},
     Extension, Router,
 };
 use database::{user_sessions::UserSessionDatabase, users::UserDatabase, DbManager, DbPool};
@@ -12,11 +12,12 @@ use models::{
     NormalizedString,
 };
 use r2d2_sqlite::SqliteConnectionManager;
-use reqwest::StatusCode;
+use reqwest::{header::LOCATION, StatusCode};
 use services::scanner_service::ScannerService;
 use std::{net::SocketAddr, sync::Arc};
 use tokio::sync::Mutex;
 use tower_http::{services::ServeDir, trace::TraceLayer};
+use website::is_hx_request;
 
 mod database;
 mod models;
@@ -72,8 +73,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut app = Router::new()
         // register our webapp
         .route("/", axum::routing::get(website::home::home))
-        .route("/sensors", get(website::home::get_sensors))
+        .route("/sensors", get(website::sensors::get_sensors))
+        .route("/sensors/:host", delete(website::sensors::delete_sensor))
         .route("/scanner", get(website::scanner::scanner))
+        .route("/pair/:host", post(website::scanner::pair_sensor))
         .route("/scan", post(website::scanner::scan))
         .route("/scan/cancel", post(website::scanner::cancel))
         .route("/scan/status", get(website::scanner::status_ws))
@@ -108,8 +111,17 @@ async fn auth(
     next: Next,
 ) -> Result<Response, (StatusCode, HeaderMap)> {
     let mut header_map = HeaderMap::new();
-    header_map.insert("HX-Redirect", "/login".parse().unwrap());
-    let error = (StatusCode::UNAUTHORIZED, header_map);
+    let error = match is_hx_request(&headers) {
+        true => {
+            header_map.insert("HX-Redirect", "/login".parse().unwrap());
+
+            (StatusCode::UNAUTHORIZED, header_map)
+        }
+        false => {
+            header_map.insert(LOCATION, "/login".parse().unwrap());
+            (StatusCode::SEE_OTHER, header_map)
+        }
+    };
     let (claims, token) = Token::try_from(&headers)
         .and_then(|t| (&t).try_into().map(|c: Claims| (c, t)))
         .map_err(|_| error.clone())?;

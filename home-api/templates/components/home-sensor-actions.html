@@ -1,0 +1,3 @@
+<a hx-delete="/sensors/{{host}}" class="btn btn-sm btn-error" data-loading-class="btn-disabled" hx-target="#sensor-table-body"
+    hx-target-error="#sensor-rows-error-{{host}}"
+    hx-on::before-send="document.getElementById('sensor-rows-error-{{host}}').textContent = ''">Delete</a>

@@ -1,6 +1,5 @@
-use super::pairing_service::PairingService;
-use crate::{models::db::SensorEntity, services::http_client::HttpRequest};
-use home_common::models::{ErrorResponse, Sensor, SensorResponse};
+use super::sensor_service::SensorService;
+use crate::models::db::SensorEntity;
 use serde_derive::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::{sync::Mutex, task::JoinHandle};
@@ -10,7 +9,6 @@ pub struct ScanProgress {
     pub progress: u32,
     pub total: u32,
     pub target: String,
-    pub sensors: Vec<Sensor>,
 }
 
 impl ScanProgress {
@@ -73,25 +71,16 @@ impl ScannerService {
         for i in 0..=255 {
             progress.lock().await.progress = i + 1;
             let host = format!("{}{}", target, i);
-            let host = format!("http://{}:{}/", host, home_common::consts::SENSOR_PORT);
-            let Ok(id) = reqwest::Client::new().pair(host.as_str()).await else {
-                continue;
-            };
-            let Ok(Ok(sensor)) = reqwest::Client::new()
-                .get(host + "sensor")
-                .header(home_common::consts::PAIR_HEADER_NAME, id.as_str())
-                .send_parse::<SensorResponse, ErrorResponse>()
-                .await
-            else {
+            let Ok(sensor) = reqwest::Client::new().get_sensor(&host).await else {
                 continue;
             };
             let sensor_entity = SensorEntity {
-                name: sensor.name.as_str().to_string(),
-                location: sensor.location.as_str().to_string(),
+                name: sensor.name.to_string(),
+                location: sensor.location.to_string(),
                 features: sensor.features,
-                pair_id: id.to_string(),
+                host,
+                pair_id: None,
             };
-            progress.lock().await.sensors.push(sensor.into());
             sensors.push(sensor_entity);
         }
 

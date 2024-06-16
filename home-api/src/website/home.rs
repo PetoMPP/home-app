@@ -1,6 +1,7 @@
+use super::{is_hx_request, sensors::SensorActions};
 use crate::{
     database::{sensors::SensorDatabase, DbPool},
-    models::{auth::Token, User},
+    models::{auth::Token, db::SensorEntity, User},
 };
 use askama::Template;
 use axum::{
@@ -8,21 +9,20 @@ use axum::{
     response::Html,
     Extension,
 };
-use home_common::models::Sensor;
-
-use super::should_load_inner;
 
 #[derive(Template)]
 #[template(path = "pages/home.html")]
 pub struct HomeTemplate {
     pub current_user: Option<User>,
-    pub sensors: Vec<Sensor>,
+    pub sensors: Vec<SensorEntity>,
+    pub action_type: SensorActions,
 }
 
 #[derive(Template)]
 #[template(path = "pages/home-inner.html")]
 pub struct HomeInnerTemplate {
-    pub sensors: Vec<Sensor>,
+    pub sensors: Vec<SensorEntity>,
+    pub action_type: SensorActions,
 }
 
 pub async fn home(
@@ -43,36 +43,23 @@ pub async fn home(
         None => vec![],
     };
 
-    match should_load_inner(&headers) {
-        true => Ok(Html(HomeInnerTemplate { sensors }.render().unwrap())),
+    match is_hx_request(&headers) {
+        true => Ok(Html(
+            HomeInnerTemplate {
+                sensors,
+                action_type: SensorActions::Home,
+            }
+            .render()
+            .unwrap(),
+        )),
         false => Ok(Html(
             HomeTemplate {
                 sensors,
                 current_user,
+                action_type: SensorActions::Home,
             }
             .render()
             .unwrap(),
         )),
     }
-}
-
-#[derive(Template)]
-#[template(path = "components/sensor-rows.html")]
-pub struct SensorRowsTemplate {
-    pub sensors: Vec<Sensor>,
-}
-
-pub async fn get_sensors(
-    Extension(pool): Extension<DbPool>,
-) -> Result<Html<String>, (StatusCode, String)> {
-    let conn = pool
-        .get()
-        .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    let sensors = conn
-        .get_sensors()
-        .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-
-    Ok(Html(SensorRowsTemplate { sensors }.render().unwrap()))
 }
