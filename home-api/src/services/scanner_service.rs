@@ -1,5 +1,8 @@
 use super::sensor_service::SensorService;
-use crate::models::db::SensorEntity;
+use crate::{
+    database::{sensors::SensorDatabase, DbPool},
+    models::db::SensorEntity,
+};
 use serde_derive::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::{sync::Mutex, task::JoinHandle};
@@ -41,17 +44,31 @@ impl ScannerResult {
     pub fn created_display(&self) -> String {
         self.created.format("%Y-%m-%d %H:%M:%S UTC").to_string()
     }
+
+    pub async fn check_sensors(&mut self, pool: &DbPool) -> Result<(), Box<dyn std::error::Error>> {
+        for s in self.sensors.iter_mut() {
+            s.pair_id = pool
+                .get()
+                .await
+                .map_err(|e| e.to_string())?
+                .get_sensor(&s.host)
+                .await
+                .map_err(|e| e.to_string())?
+                .and_then(|s| s.pair_id);
+        }
+        Ok(())
+    }
 }
 
 #[derive(Default)]
 pub struct ScannerService {
     pub last_result: Option<ScannerResult>,
-    handle: Option<JoinHandle<Result<ScannerResult, &'static str>>>,
+    handle: Option<JoinHandle<Result<ScannerResult, String>>>,
     progress: Arc<Mutex<ScanProgress>>,
 }
 
 impl ScannerService {
-    async fn scan_inner(progress: Arc<Mutex<ScanProgress>>) -> Result<ScannerResult, &'static str> {
+    async fn scan_inner(progress: Arc<Mutex<ScanProgress>>) -> Result<ScannerResult, String> {
         let Some(target) = pnet::datalink::interfaces().into_iter().find_map(|n| {
             n.ips
                 .into_iter()
@@ -59,29 +76,31 @@ impl ScannerService {
                 .find(|ip| ip.is_ipv4() && !ip.is_loopback() && !ip.is_unspecified())
                 .map(|ip| ip.to_string())
         }) else {
-            return Err("No network to scan!");
+            return Err("No network to scan!".to_string());
         };
-        let target = &target[..target.rfind('.').unwrap() + 1];
+        let target = target[..target.rfind('.').unwrap() + 1].to_string();
         {
             let mut scan_progress = progress.lock().await;
             scan_progress.target = target.to_string();
             scan_progress.total = 256;
         }
-        let mut sensors = vec![];
+        let mut handles = tokio::task::JoinSet::new();
         for i in 0..=255 {
-            progress.lock().await.progress = i + 1;
-            let host = format!("{}{}", target, i);
-            let Ok(sensor) = reqwest::Client::new().get_sensor(&host).await else {
-                continue;
-            };
-            let sensor_entity = SensorEntity {
-                name: sensor.name.to_string(),
-                location: sensor.location.to_string(),
-                features: sensor.features,
-                host,
-                pair_id: None,
-            };
-            sensors.push(sensor_entity);
+            let progress = progress.clone();
+            let target = target.clone();
+            let task = tokio::spawn(async move {
+                progress.lock().await.progress = i + 1;
+                let host = format!("{}{}", target, i);
+                reqwest::Client::new().get_sensor(&host).await.ok()
+            });
+            handles.spawn(task);
+        }
+
+        let mut sensors = vec![];
+        while let Some(sensor) = handles.join_next().await {
+            if let Some(sensor) = sensor.and_then(|r| r).map_err(|e| e.to_string())? {
+                sensors.push(sensor);
+            }
         }
 
         Ok(ScannerResult {

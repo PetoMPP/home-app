@@ -1,3 +1,9 @@
-<a hx-post="/pair/{{host}}" class="btn btn-sm" data-loading-class="btn-disabled" hx-target="#sensor-rows-{{host}}"
+<a hx-post="/pair/{{host}}" 
+{% if let Some(_) = sensor.pair_id %}
+    class="btn btn-sm btn-disabled"
+{% else %}
+    class="btn btn-sm"
+{% endif %}
+    data-loading-class="btn-disabled" hx-target="#sensor-rows-{{host}}"
     hx-target-error="#sensor-rows-error-{{host}}"
     hx-on::before-send="document.getElementById('sensor-rows-error-{{host}}').textContent = ''">Pair</a>
