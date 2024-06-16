@@ -51,10 +51,9 @@ impl SensorService for reqwest::Client {
             .await?
             .map_err(|e| e.error.to_string())?;
 
-        // Wait for the sensor to reopen the socket, can be shortened probably
-        tokio::time::sleep(Duration::from_secs_f32(1.0)).await;
-
         if response.is_success() {
+            // Wait for the sensor to reopen the socket, can be shortened probably
+            tokio::time::sleep(Duration::from_secs_f32(1.0)).await;
             let mut sensor = self.get_sensor(&host).await?;
             sensor.pair_id = Some(id.to_string());
             Ok(sensor)

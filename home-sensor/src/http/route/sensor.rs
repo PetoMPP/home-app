@@ -44,7 +44,7 @@ pub fn post() -> Route {
     Route {
         is_match: |r| r.method == "POST" && r.route == "/sensor",
         response: |r, paired| {
-            if !paired {
+            if paired.is_none() {
                 return ResponseBuilder::<'_, usize>::default()
                     .with_code(StatusCode::FORBIDDEN)
                     .into();
