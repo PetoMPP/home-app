@@ -4,6 +4,5 @@
 {% else %}
     class="btn btn-sm"
 {% endif %}
-    data-loading-class="btn-disabled" hx-target="#sensor-rows-{{host}}"
-    hx-target-error="#sensor-rows-error-{{host}}"
+    data-loading-class="btn-disabled" hx-target="#sensor-rows-{{host}}" hx-target-error="#sensor-rows-error-{{host}}" hx-swap="outerHTML"
     hx-on::before-send="document.getElementById('sensor-rows-error-{{host}}').textContent = ''">Pair</a>
