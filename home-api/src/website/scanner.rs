@@ -102,20 +102,11 @@ pub async fn cancel(State(scanner): State<Arc<Mutex<ScannerService>>>) -> Html<S
 pub async fn pair_sensor(
     Extension(pool): Extension<DbPool>,
     Path(host): Path<String>,
-) -> Result<Html<String>, (StatusCode, String)> {
+) -> Result<Html<String>, (StatusCode, HeaderMap, String)> {
     let host = host.replace("-", ".");
-    let sensor = Client::new()
-        .pair(&host)
-        .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    let conn = pool
-        .get()
-        .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    let sensor = conn
-        .create_sensor(sensor)
-        .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let sensor = Client::new().pair(&host).await.map_err(into_err)?;
+    let conn = pool.get().await.map_err(|e| into_err(e.into()))?;
+    let sensor = conn.create_sensor(sensor).await.map_err(into_err)?;
 
     Ok(Html(
         SensorRowTemplate {
@@ -125,6 +116,12 @@ pub async fn pair_sensor(
         .render()
         .unwrap(),
     ))
+}
+
+fn into_err(e: Box<dyn std::error::Error>) -> (StatusCode, HeaderMap, String) {
+    let mut header_map = HeaderMap::new();
+    header_map.insert("Hx-Reswap", "innerHTML".parse().unwrap());
+    (StatusCode::INTERNAL_SERVER_ERROR, header_map, e.to_string())
 }
 
 #[derive(Template)]
