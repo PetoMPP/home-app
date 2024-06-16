@@ -1,5 +1,5 @@
 use crate::{
-    models::http::{Request, Response, ResponseBuilder},
+    models::http::{Request, ResponseBuilder},
     storage::StoreProvider,
     BUTTON,
 };
@@ -113,33 +113,39 @@ pub fn server_loop<'s, 'r>(socket: &'s mut Socket<WifiStaDevice>) -> ! {
 
             let pair_route = route::pair::pair();
             let pair_confirm_route = route::pair::confirm();
-            let response = match pairing {
-                true if (pair_route.is_match)(&request) => (pair_route.response)(&request, true),
-                true if (pair_confirm_route.is_match)(&request) => {
-                    (pair_confirm_route.response)(&request, true)
-                }
-                _ => {
-                    let paired = request
-                        .headers
-                        .get(home_common::consts::PAIR_HEADER_NAME)
-                        .and_then(|id| {
-                            FlashStorage::new()
-                                .get()
-                                .ok()
-                                .map(|s| s.paired_keys.iter().any(|k| k == id))
+            let pair_id = request
+                .headers
+                .get(home_common::consts::PAIR_HEADER_NAME)
+                .and_then(|id| {
+                    FlashStorage::new()
+                        .get()
+                        .ok()
+                        .and_then(|s| s.paired_keys.iter().find(|k| k.as_str() == id).cloned())
+                });
+            let response = match (
+                pairing,
+                (pair_route.is_match)(&request),
+                (pair_confirm_route.is_match)(&request),
+            ) {
+                (true, true, _) => (pair_route.response)(&request, pair_id),
+                (true, false, true) => (pair_confirm_route.response)(&request, pair_id),
+                (false, pr, pcr) if pr || pcr => ResponseBuilder::default()
+                    .with_code(StatusCode::FORBIDDEN)
+                    .with_data(&ErrorResponse {
+                        error: "To connect use /pair endpoint and pairing button on the device."
+                            .try_into()
+                            .unwrap(),
+                    })
+                    .into(),
+                _ => match route::routes().into_iter().find(|r| (r.is_match)(&request)) {
+                    Some(route) => (route.response)(&request, pair_id),
+                    None => ResponseBuilder::default()
+                        .with_code(StatusCode::NOT_FOUND)
+                        .with_data(&ErrorResponse {
+                            error: String::from_str("Not found").unwrap(),
                         })
-                        .unwrap_or_default();
-
-                    match route::routes().into_iter().find(|r| (r.is_match)(&request)) {
-                        Some(route) => (route.response)(&request, paired),
-                        None => ResponseBuilder::default()
-                            .with_code(StatusCode::NOT_FOUND)
-                            .with_data(&ErrorResponse {
-                                error: String::from_str("Not found").unwrap(),
-                            })
-                            .into(),
-                    }
-                }
+                        .into(),
+                },
             };
 
             socket.write_all(response.as_slice()).unwrap();

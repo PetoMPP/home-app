@@ -29,11 +29,13 @@ pub mod http {
     impl<'r> Headers<'r> {
         fn into_response(self, code: StatusCode) -> Response {
             let mut resp: Response = code.into();
-            for (k, v) in self.0.iter() {
-                resp.extend_from_slice(k.as_bytes()).unwrap();
-                resp.extend_from_slice(b": ").unwrap();
-                resp.extend_from_slice(v.as_bytes()).unwrap();
-                resp.extend_from_slice(b"\r\n").unwrap();
+            if !self.0.is_empty() {
+                for (k, v) in self.0.iter() {
+                    resp.extend_from_slice(k.as_bytes()).unwrap();
+                    resp.extend_from_slice(b": ").unwrap();
+                    resp.extend_from_slice(v.as_bytes()).unwrap();
+                    resp.extend_from_slice(b"\r\n").unwrap();
+                }
             }
             resp.extend_from_slice(b"\r\n").unwrap();
             resp

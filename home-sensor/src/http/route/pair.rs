@@ -41,12 +41,8 @@ pub fn pair() -> Route {
 pub fn confirm() -> Route {
     Route {
         is_match: |r| r.method == "POST" && r.route == "/pair/confirm",
-        response: |r, _paired| {
-            let Some(id) = r
-                .headers
-                .get(home_common::consts::PAIR_HEADER_NAME)
-                .and_then(|id| String::from_str(id).ok())
-            else {
+        response: |r, _pair_id| {
+            let Some(id) = r.headers.get(home_common::consts::PAIR_HEADER_NAME) else {
                 return ResponseBuilder::<'_, usize>::default()
                     .with_code(StatusCode::BAD_REQUEST)
                     .into();
@@ -72,7 +68,7 @@ pub fn confirm() -> Route {
                     .with_code(StatusCode::INTERNAL_SERVER_ERROR)
                     .into();
             };
-            let Ok(_) = store.paired_keys.insert(id) else {
+            let Ok(_) = store.paired_keys.insert(String::from_str(id).unwrap()) else {
                 return ResponseBuilder::default()
                     .with_code(StatusCode::INSUFFICIENT_STORAGE)
                     .with_data(&ErrorResponse {
@@ -80,6 +76,30 @@ pub fn confirm() -> Route {
                     })
                     .into();
             };
+            flash_storage.set(store);
+
+            ResponseBuilder::<'_, usize>::default().into()
+        },
+    }
+}
+
+pub fn retain() -> Route {
+    Route {
+        is_match: |r| r.method == "POST" && r.route == "/pair/retain",
+        response: |_r, paired| {
+            let Some(pair_id) = paired else {
+                return ResponseBuilder::<'_, usize>::default()
+                    .with_code(StatusCode::FORBIDDEN)
+                    .into();
+            };
+
+            let mut flash_storage = FlashStorage::new();
+            let Ok(mut store) = flash_storage.get() else {
+                return ResponseBuilder::<'_, usize>::default()
+                    .with_code(StatusCode::INTERNAL_SERVER_ERROR)
+                    .into();
+            };
+            store.paired_keys.retain(|p| p == &pair_id);
             flash_storage.set(store);
 
             ResponseBuilder::<'_, usize>::default().into()
