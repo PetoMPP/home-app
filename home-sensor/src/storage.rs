@@ -17,7 +17,7 @@ const CAPACITY: u32 = 0x6000;
 
 impl StoreProvider for FlashStorage {
     fn init(&mut self) {
-        if let Err(_) = self.get() {
+        if self.get().is_err() {
             log::info!("No data found in storage, initializing..");
             self.set(Store::default());
         }

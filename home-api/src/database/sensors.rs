@@ -25,13 +25,12 @@ impl SensorDatabase for DbConn {
         &self,
         host: &str,
     ) -> Result<Option<SensorEntity>, Box<dyn std::error::Error>> {
-        Ok(self
-            .query_single(&format!("SELECT * FROM sensors WHERE host = '{}'", host))
-            .await?)
+        self.query_single(&format!("SELECT * FROM sensors WHERE host = '{}'", host))
+            .await
     }
 
     async fn get_sensors(&self) -> Result<Vec<SensorEntity>, Box<dyn std::error::Error>> {
-        Ok(self.query::<SensorEntity>("SELECT * FROM sensors").await?)
+        self.query::<SensorEntity>("SELECT * FROM sensors").await
     }
 
     async fn create_sensor(

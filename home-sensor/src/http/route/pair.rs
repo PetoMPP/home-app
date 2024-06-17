@@ -50,7 +50,7 @@ pub fn confirm() -> Route {
 
             let mut valid = false;
             critical_section::with(|cs| {
-                valid = CURRENT_KEYS.borrow_ref(cs).iter().any(|k| k == &id)
+                valid = CURRENT_KEYS.borrow_ref(cs).iter().any(|k| k == id)
             });
 
             if !valid {
@@ -114,7 +114,7 @@ fn new_id() -> String<32> {
         let mut output = [0u8; 16 * 2];
         let mut rng = crate::RNG.borrow_ref_mut(cs).unwrap();
         rng.read(&mut input);
-        hex::encode_to_slice(&mut input, &mut output).unwrap();
+        hex::encode_to_slice(input, &mut output).unwrap();
         id = String::from_str(unsafe { core::str::from_utf8_unchecked(&output) }).unwrap();
     });
 

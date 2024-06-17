@@ -21,12 +21,11 @@ impl UserDatabase for DbConn {
         username: &str,
     ) -> Result<Option<UserEntity>, Box<dyn std::error::Error>> {
         let username = NormalizedString::new(username);
-        Ok(self
-            .query_single::<UserEntity>(&format!(
-                "SELECT * FROM users WHERE normalized_name = '{}' LIMIT 1",
-                *username
-            ))
-            .await?)
+        self.query_single::<UserEntity>(&format!(
+            "SELECT * FROM users WHERE normalized_name = '{}' LIMIT 1",
+            *username
+        ))
+        .await
     }
 
     async fn create_user(
@@ -53,6 +52,6 @@ impl UserDatabase for DbConn {
     }
 
     async fn get_users(&self) -> Result<Vec<UserEntity>, Box<dyn std::error::Error>> {
-        Ok(self.query::<UserEntity>("SELECT * FROM users").await?)
+        self.query::<UserEntity>("SELECT * FROM users").await
     }
 }

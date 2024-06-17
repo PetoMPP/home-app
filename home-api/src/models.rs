@@ -57,13 +57,12 @@ pub mod auth {
     impl Password {
         pub fn new(password: String) -> Self {
             let mut rng = urandom::csprng();
-            let salt: [u8; 16] = rng.next();
-            let salt = salt.iter().map(|x| format!("{:x}", x)).collect::<String>();
+            let salt = hex::encode(rng.next::<[u8; 16]>());
             let salty_password = password + &salt;
             let mut hasher = Sha256::new();
             hasher.update(&salty_password);
             let result = hasher.finalize();
-            let hash = format!("{:x}", result);
+            let hash = hex::encode(result);
             Self { hash, salt }
         }
 
@@ -84,7 +83,7 @@ pub mod auth {
         pub fn new(user: &UserEntity) -> Result<Self, Box<dyn std::error::Error>> {
             use hmac::digest::KeyInit;
             let key: Hmac<Sha256> = Hmac::new_from_slice(env!("API_SECRET").as_bytes()).unwrap();
-            let claims: BTreeMap<String, String> = Claims::try_from(user.clone())?.into();
+            let claims: BTreeMap<String, String> = Claims::from(user.clone()).into();
             Ok(Self(claims.sign_with_key(&key)?))
         }
 
@@ -128,7 +127,7 @@ pub mod auth {
             Self: 'async_trait,
         {
             Box::pin(async move {
-                Ok(Token::try_from(&parts.headers).map_err(|_| StatusCode::UNAUTHORIZED)?)
+                Token::try_from(&parts.headers).map_err(|_| StatusCode::UNAUTHORIZED)
             })
         }
     }
@@ -222,9 +221,9 @@ pub mod auth {
         }
     }
 
-    impl Into<User> for Claims {
-        fn into(self) -> User {
-            User { name: self.sub }
+    impl From<Claims> for User {
+        fn from(val: Claims) -> Self {
+            User { name: val.sub }
         }
     }
 }
@@ -257,9 +256,9 @@ pub mod db {
         }
     }
 
-    impl Into<User> for UserEntity {
-        fn into(self) -> User {
-            User { name: self.name }
+    impl From<UserEntity> for User {
+        fn from(val: UserEntity) -> Self {
+            User { name: val.name }
         }
     }
 
@@ -299,22 +298,22 @@ pub mod db {
         }
     }
 
-    impl Into<Sensor> for SensorEntity {
-        fn into(self) -> Sensor {
+    impl From<SensorEntity> for Sensor {
+        fn from(val: SensorEntity) -> Self {
             Sensor {
-                name: heapless::String::from_str(self.name.as_str()).unwrap(),
-                location: heapless::String::from_str(self.location.as_str()).unwrap(),
-                features: self.features,
+                name: heapless::String::from_str(val.name.as_str()).unwrap(),
+                location: heapless::String::from_str(val.location.as_str()).unwrap(),
+                features: val.features,
             }
         }
     }
 
-    impl Into<SensorDto> for SensorEntity {
-        fn into(self) -> SensorDto {
+    impl From<SensorEntity> for SensorDto {
+        fn from(val: SensorEntity) -> Self {
             SensorDto {
-                name: Some(heapless::String::from_str(self.name.as_str()).unwrap()),
-                location: Some(heapless::String::from_str(self.location.as_str()).unwrap()),
-                features: Some(self.features),
+                name: Some(heapless::String::from_str(val.name.as_str()).unwrap()),
+                location: Some(heapless::String::from_str(val.location.as_str()).unwrap()),
+                features: Some(val.features),
             }
         }
     }

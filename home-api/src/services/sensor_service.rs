@@ -6,7 +6,12 @@ use std::{error::Error, time::Duration};
 pub trait SensorService {
     async fn get_sensor(&self, host: &str) -> Result<SensorEntity, Box<dyn Error>>;
     async fn pair(&self, host: &str) -> Result<SensorEntity, Box<dyn Error>>;
-    async fn update_sensor(&self, host: &str, pair_id: &str, sensor: Sensor) -> Result<Sensor, Box<dyn Error>>;
+    async fn update_sensor(
+        &self,
+        host: &str,
+        pair_id: &str,
+        sensor: Sensor,
+    ) -> Result<Sensor, Box<dyn Error>>;
 }
 
 impl SensorService for reqwest::Client {
@@ -55,7 +60,7 @@ impl SensorService for reqwest::Client {
         if response.is_success() {
             // Wait for the sensor to reopen the socket, can be shortened probably
             tokio::time::sleep(Duration::from_secs_f32(1.0)).await;
-            let mut sensor = self.get_sensor(&host).await?;
+            let mut sensor = self.get_sensor(host).await?;
             sensor.pair_id = Some(id.to_string());
             Ok(sensor)
         } else {
@@ -63,7 +68,12 @@ impl SensorService for reqwest::Client {
         }
     }
 
-    async fn update_sensor(&self, host: &str, pair_id: &str, sensor: Sensor) -> Result<Sensor, Box<dyn Error>> {
+    async fn update_sensor(
+        &self,
+        host: &str,
+        pair_id: &str,
+        sensor: Sensor,
+    ) -> Result<Sensor, Box<dyn Error>> {
         let host_uri = format!("http://{}:{}/", host, home_common::consts::SENSOR_PORT);
         let sensor_dto = sensor.into();
         let response = self

@@ -55,7 +55,7 @@ impl Timeout {
 
 pub static OPENED_TIMEOUT: Mutex<RefCell<Timeout>> = Mutex::new(RefCell::new(Timeout::new(30_000)));
 
-pub fn server_loop<'s, 'r>(socket: &'s mut Socket<WifiStaDevice>) -> ! {
+pub fn server_loop(socket: &mut Socket<WifiStaDevice>) -> ! {
     log::info!("Start listening!");
     let mut disconnect_timeout = Timeout::new(100);
     let mut pairing = false;

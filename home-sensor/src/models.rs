@@ -66,17 +66,17 @@ pub mod http {
         type Error = StatusCode;
 
         fn try_from(value: &'r [u8]) -> Result<Self, Self::Error> {
-            let value = unsafe { core::str::from_utf8_unchecked(&value) };
+            let value = unsafe { core::str::from_utf8_unchecked(value) };
             let Some(he) = value.find("\r\n\r\n") else {
                 return Err(StatusCode::BAD_REQUEST);
             };
             let header_str = &value[..he];
             let mut lines = header_str.lines();
             let path_line = lines.next().ok_or(StatusCode::BAD_REQUEST)?;
-            let me = path_line.find(" ").ok_or(StatusCode::BAD_REQUEST)?;
+            let me = path_line.find(' ').ok_or(StatusCode::BAD_REQUEST)?;
             let method = &path_line[..me];
             let path_line = &path_line[me + 1..];
-            let route = &path_line[..path_line.find(" ").ok_or(StatusCode::BAD_REQUEST)?];
+            let route = &path_line[..path_line.find(' ').ok_or(StatusCode::BAD_REQUEST)?];
             let mut headers = FnvIndexMap::new();
             for header in lines {
                 let Some((key, value)) = header.split_once(": ") else {
@@ -138,11 +138,11 @@ pub mod http {
         }
     }
 
-    impl<T: Serialize> Into<Response> for ResponseBuilder<'_, T> {
-        fn into(self) -> Response {
-            let code = self.code.unwrap_or(StatusCode::OK);
-            let mut headers = self.headers;
-            let Some(data) = self.data else {
+    impl<T: Serialize> From<ResponseBuilder<'_, T>> for Response {
+        fn from(val: ResponseBuilder<'_, T>) -> Self {
+            let code = val.code.unwrap_or(StatusCode::OK);
+            let mut headers = val.headers;
+            let Some(data) = val.data else {
                 return headers.into_response(code);
             };
             let mut ibuffer = itoa::Buffer::new();

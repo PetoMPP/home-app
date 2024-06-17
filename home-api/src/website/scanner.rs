@@ -101,7 +101,7 @@ pub async fn pair_sensor(
     Extension(pool): Extension<DbPool>,
     Path(host): Path<String>,
 ) -> Result<Html<String>, ApiErrorResponse> {
-    let host = host.replace("-", ".");
+    let host = host.replace('-', ".");
     let sensor = Client::new().pair(&host).await.map_err(into_err)?;
     let conn = pool.get().await.map_err(into_err)?;
     let sensor = conn.create_sensor(sensor).await.map_err(into_err)?;
@@ -136,7 +136,7 @@ async fn handle_status_socket(
     scanner: Arc<Mutex<ScannerService>>,
 ) {
     // send a ping (unsupported by some browsers) just to kick things off and get a response
-    if let Err(_) = socket.send(Message::Ping(vec![1, 2, 3])).await {
+    if socket.send(Message::Ping(vec![1, 2, 3])).await.is_err() {
         // no Error here since the only thing we can do is to close the connection.
         // If we can not send messages, there is no way to salvage the statemachine anyway.
         return;
@@ -180,7 +180,7 @@ async fn handle_status_socket(
                         continue;
                     }
                 }
-                if let Err(_) = socket.send(msg.clone()).await {
+                if socket.send(msg.clone()).await.is_err() {
                     break;
                 }
                 last_msg = Some(msg);
