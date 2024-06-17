@@ -8,13 +8,14 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  API_SECRET: just-to-pass-the-build-for-testing
 
 jobs:
   # Run cargo test
-  test:
-    name: Test Suite
+  test-workspace:
+    name: Test Workspace
     runs-on: ubuntu-latest
+    env:
+      API_SECRET: just-to-pass-the-build-for-testing
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
@@ -40,6 +41,35 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
+
+  test-sensor:
+    name: Test Sensor
+    runs-on: ubuntu-latest
+    env:
+      SSID: mocked-ssid
+      WIFI_PASSWORD: mocked-password
+    defaults:
+      run:
+        working-directory: home-sensor
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+      - name: Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-test-${{ hashFiles('**/Cargo.toml') }}
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: nightly-2023-11-14
+          targets: riscv32imc-unknown-none-elf
+          components: rust-src
+      - run: cargo build --release --target riscv32imc-unknown-none-elf
 
   # Run cargo clippy -- -D warnings
   clippy_check:
