@@ -50,7 +50,7 @@ jobs:
       - name: Install npx
         run: npm install npx
 
-      - run: cargo build --release --target aarch64-unknown-linux-gnu
+      - run: cargo build --release --target aarch64-unknown-linux-gnu --features vendored
       
       - name: Set retention for artifacts
         run: |
@@ -67,4 +67,21 @@ jobs:
           path: |
             target/aarch64-unknown-linux-gnu/release/home-api
             target/aarch64-unknown-linux-gnu/release/home-api.db
+  
+  release-esp32-c3:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: home-sensor
+    env:
+      BRANCH: ${{ github.ref }}
+      RETENTION_DAYS: 0
 
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: nightly-2023-11-14
+          targets: riscv32imc-unknown-none-elf
+          components: rust-src
+      - run: cargo build --release --target riscv32imc-unknown-none-elf
