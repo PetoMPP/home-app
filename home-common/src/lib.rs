@@ -35,6 +35,16 @@ pub mod models {
         }
     }
 
+    impl Into<SensorDto> for Sensor {
+        fn into(self) -> SensorDto {
+            SensorDto {
+                name: Some(self.name),
+                location: Some(self.location),
+                features: Some(self.features),
+            }
+        }
+    }
+
     #[derive(Debug, Default, Serialize, Deserialize, Clone)]
     pub struct SensorDto {
         pub name: Option<String<64>>,

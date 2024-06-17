@@ -91,7 +91,7 @@ pub mod auth {
         pub async fn get_valid_user(
             opt_self: Option<Self>,
             conn: &DbConn,
-        ) -> Result<Option<User>, (StatusCode, String)> {
+        ) -> Result<Option<User>, Box<dyn std::error::Error>> {
             let Some(token) = opt_self else {
                 return Ok(None);
             };
@@ -101,8 +101,7 @@ pub mod auth {
             let normalized_name = NormalizedString::new(&claims.sub);
             Ok(conn
                 .get_session(normalized_name, token)
-                .await
-                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+                .await?
                 .map(|_| claims.into()))
         }
     }
@@ -236,7 +235,7 @@ pub mod db {
         NormalizedString, User,
     };
     use crate::database::FromRow;
-    use home_common::models::Sensor;
+    use home_common::models::{Sensor, SensorDto};
     use r2d2_sqlite::rusqlite;
     use std::str::FromStr;
 
@@ -279,7 +278,7 @@ pub mod db {
         }
     }
 
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Clone, Default)]
     pub struct SensorEntity {
         pub name: String,
         pub location: String,
@@ -306,6 +305,16 @@ pub mod db {
                 name: heapless::String::from_str(self.name.as_str()).unwrap(),
                 location: heapless::String::from_str(self.location.as_str()).unwrap(),
                 features: self.features,
+            }
+        }
+    }
+
+    impl Into<SensorDto> for SensorEntity {
+        fn into(self) -> SensorDto {
+            SensorDto {
+                name: Some(heapless::String::from_str(self.name.as_str()).unwrap()),
+                location: Some(heapless::String::from_str(self.location.as_str()).unwrap()),
+                features: Some(self.features),
             }
         }
     }

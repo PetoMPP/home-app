@@ -72,9 +72,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // build app
     let mut app = Router::new()
         // register our webapp
-        .route("/", axum::routing::get(website::home::home))
+        .route("/", axum::routing::get(website::sensors::sensors))
         .route("/sensors", get(website::sensors::get_sensors))
         .route("/sensors/:host", delete(website::sensors::delete_sensor))
+        .route("/sensors/:host/edit", get(website::sensors::edit_sensor))
+        .route("/sensors/:host", post(website::sensors::update_sensor))
         .route("/scanner", get(website::scanner::scanner))
         .route("/pair/:host", post(website::scanner::pair_sensor))
         .route("/scan", post(website::scanner::scan))
@@ -102,6 +104,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         app.into_make_service_with_connect_info::<SocketAddr>(),
     )
     .await?)
+}
+
+pub type ApiErrorResponse = (StatusCode, HeaderMap, String);
+
+pub fn into_err(e: impl Into<Box<dyn std::error::Error>>) -> ApiErrorResponse {
+    let mut header_map = HeaderMap::new();
+    header_map.insert("Hx-Reswap", "innerHTML".parse().unwrap());
+    (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        header_map,
+        e.into().to_string(),
+    )
+}
+
+pub fn into_err_str(e: Option<impl Into<String>>) -> ApiErrorResponse {
+    let mut header_map = HeaderMap::new();
+    header_map.insert("Hx-Reswap", "innerHTML".parse().unwrap());
+    (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        header_map,
+        e.map(|e| e.into()).unwrap_or_default(),
+    )
 }
 
 async fn auth(

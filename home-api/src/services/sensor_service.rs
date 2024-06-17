@@ -1,11 +1,12 @@
 use super::http_client::HttpRequest;
 use crate::models::db::SensorEntity;
-use home_common::models::{ErrorResponse, PairResponse, SensorResponse};
+use home_common::models::{ErrorResponse, PairResponse, Sensor, SensorDto, SensorResponse};
 use std::{error::Error, time::Duration};
 
 pub trait SensorService {
     async fn get_sensor(&self, host: &str) -> Result<SensorEntity, Box<dyn Error>>;
     async fn pair(&self, host: &str) -> Result<SensorEntity, Box<dyn Error>>;
+    async fn update_sensor(&self, host: &str, pair_id: &str, sensor: Sensor) -> Result<Sensor, Box<dyn Error>>;
 }
 
 impl SensorService for reqwest::Client {
@@ -60,5 +61,34 @@ impl SensorService for reqwest::Client {
         } else {
             Err("Pairing failed".into())
         }
+    }
+
+    async fn update_sensor(&self, host: &str, pair_id: &str, sensor: Sensor) -> Result<Sensor, Box<dyn Error>> {
+        let host_uri = format!("http://{}:{}/", host, home_common::consts::SENSOR_PORT);
+        let sensor_dto = sensor.into();
+        let response = self
+            .post(host_uri.clone() + "sensor")
+            .header(home_common::consts::PAIR_HEADER_NAME, pair_id)
+            .json::<SensorDto>(&sensor_dto)
+            .send_parse_err::<ErrorResponse>()
+            .await?
+            .map_err(|e| e.error.to_string());
+
+        println!("{:?}", response);
+        let response = response?;
+
+        if response.is_success() {
+            // Wait for the sensor to reopen the socket, can be shortened probably
+            tokio::time::sleep(Duration::from_secs_f32(1.0)).await;
+            let response = self
+                .get(host_uri.clone() + "sensor")
+                .send_parse::<SensorResponse, ErrorResponse>()
+                .await?
+                .map_err(|e| e.error.to_string())?;
+
+            return Ok(response.into());
+        }
+
+        Err("Update failed".into())
     }
 }
