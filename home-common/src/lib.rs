@@ -35,12 +35,12 @@ pub mod models {
         }
     }
 
-    impl Into<SensorDto> for Sensor {
-        fn into(self) -> SensorDto {
+    impl From<Sensor> for SensorDto {
+        fn from(val: Sensor) -> Self {
             SensorDto {
-                name: Some(self.name),
-                location: Some(self.location),
-                features: Some(self.features),
+                name: Some(val.name),
+                location: Some(val.location),
+                features: Some(val.features),
             }
         }
     }
