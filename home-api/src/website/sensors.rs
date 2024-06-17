@@ -122,7 +122,7 @@ pub async fn edit_sensor(
     token: Option<Token>,
     Extension(pool): Extension<DbPool>,
 ) -> Result<Html<String>, ApiErrorResponse> {
-    let host = host.replace("-", ".");
+    let host = host.replace('-', ".");
     let conn = pool.get().await.map_err(into_err)?;
     let current_user = Token::get_valid_user(token, &conn)
         .await
@@ -170,7 +170,7 @@ pub async fn update_sensor(
     let current_user = Token::get_valid_user(token, &conn)
         .await
         .map_err(|e| into_edit_err(e, &headers, None, SensorEntity::default()))?;
-    let host = host.replace("-", ".");
+    let host = host.replace('-', ".");
     let sensor_entity = conn
         .get_sensor(&host)
         .await
@@ -185,7 +185,7 @@ pub async fn update_sensor(
         ));
     };
     let sensor = Client::new()
-        .update_sensor(&host, &pair_id, sensor)
+        .update_sensor(&host, pair_id, sensor)
         .await
         .map_err(|e| into_edit_err(e, &headers, current_user.clone(), sensor_entity.clone()))?;
     let sensor = conn
@@ -266,7 +266,7 @@ pub async fn delete_sensor(
     Path(host): Path<String>,
     Extension(pool): Extension<DbPool>,
 ) -> Result<Html<String>, ApiErrorResponse> {
-    let host = host.replace("-", ".");
+    let host = host.replace('-', ".");
     let conn = pool.get().await.map_err(into_err)?;
     conn.delete_sensor(&host).await.map_err(into_err)?;
 

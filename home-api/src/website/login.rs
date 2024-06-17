@@ -30,7 +30,9 @@ pub async fn login_page(
     Extension(pool): Extension<DbPool>,
 ) -> Result<Html<String>, ApiErrorResponse> {
     let conn = pool.get().await.map_err(into_err)?;
-    let current_user = Token::get_valid_user(token, &conn).await.map_err(into_err)?;
+    let current_user = Token::get_valid_user(token, &conn)
+        .await
+        .map_err(into_err)?;
     Ok(Html(
         LoginTemplate {
             current_user: current_user.clone(),

@@ -11,6 +11,7 @@ deadpool = { workspace = true }
 deadpool-r2d2 = { workspace = true }
 deref-derive = { workspace = true }
 heapless = { workspace = true }
+hex = { workspace = true }
 home-common = { path = "../home-common" }
 hmac = { workspace = true }
 jwt = { workspace = true }

@@ -6,12 +6,12 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize, Serialize)]
 pub struct StatusCode(pub NonZeroU16);
 
-impl Into<Response> for StatusCode {
-    fn into(self) -> Response {
+impl From<StatusCode> for Response {
+    fn from(val: StatusCode) -> Self {
         let mut buffer = itoa::Buffer::new();
         let start = "HTTP/1.1";
-        let code = buffer.format(self.0.get());
-        let text = canonical_reason(self.0.get()).unwrap();
+        let code = buffer.format(val.0.get());
+        let text = canonical_reason(val.0.get()).unwrap();
         let mut res = Vec::new();
         res.extend_from_slice(start.as_bytes()).unwrap();
         res.extend_from_slice(b" ").unwrap();

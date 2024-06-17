@@ -45,18 +45,16 @@ impl UserSessionDatabase for DbConn {
         normalized_name: NormalizedString,
         token: Token,
     ) -> Result<Option<UserSession>, Box<dyn std::error::Error>> {
-        Ok(self
-            .query_single::<UserSession>(&format!(
-                "SELECT * FROM user_sessions WHERE normalized_name = '{}' AND token = '{}' LIMIT 1",
-                *normalized_name, *token
-            ))
-            .await?)
+        self.query_single::<UserSession>(&format!(
+            "SELECT * FROM user_sessions WHERE normalized_name = '{}' AND token = '{}' LIMIT 1",
+            *normalized_name, *token
+        ))
+        .await
     }
 
     async fn get_sessions(&self) -> Result<Vec<UserSession>, Box<dyn std::error::Error>> {
-        Ok(self
-            .query::<UserSession>("SELECT * FROM user_sessions")
-            .await?)
+        self.query::<UserSession>("SELECT * FROM user_sessions")
+            .await
     }
 
     async fn delete_session(
@@ -77,20 +75,19 @@ impl UserSessionDatabase for DbConn {
         &self,
         sessions: Vec<UserSession>,
     ) -> Result<usize, Box<dyn std::error::Error>> {
-        Ok(self
-            .execute(&format!(
-                "DELETE FROM user_sessions WHERE {}",
-                sessions
-                    .iter()
-                    .map(|session| {
-                        format!(
-                            "(normalized_name = '{}' AND token = '{}')",
-                            *session.normalized_name, *session.token
-                        )
-                    })
-                    .collect::<Vec<String>>()
-                    .join(" OR ")
-            ))
-            .await?)
+        self.execute(&format!(
+            "DELETE FROM user_sessions WHERE {}",
+            sessions
+                .iter()
+                .map(|session| {
+                    format!(
+                        "(normalized_name = '{}' AND token = '{}')",
+                        *session.normalized_name, *session.token
+                    )
+                })
+                .collect::<Vec<String>>()
+                .join(" OR ")
+        ))
+        .await
     }
 }

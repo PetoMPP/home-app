@@ -12,6 +12,7 @@ deadpool = { version = "0.12", features = ["serde"] }
 deadpool-r2d2 = "0.4"
 deref-derive = "0.1.0"
 heapless = { version = "0.8.0", default-features = false, features = ["serde"] }
+hex = "0.4"
 home-common = { path = "../home-common" }
 hmac = "0.12"
 jwt = "0.16"

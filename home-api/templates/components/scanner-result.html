@@ -1,7 +1,7 @@
 <div class="flex items-center justify-between pb-4 gap-6">
     {% match result %}
     {% when Some with (result) %}
-    <p>Sensor data fetched at: {{ result.created_display()}}</p>
+    <p>Sensor data fetched at {{ result.created_display()}} in {{result.duration_display()}}.</p>
     {% when None %}
     <p>No sensor data fetched yet</p>
     {% endmatch %}

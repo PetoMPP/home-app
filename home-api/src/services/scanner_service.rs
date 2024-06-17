@@ -38,11 +38,21 @@ pub enum ScannerState {
 pub struct ScannerResult {
     pub sensors: Vec<SensorEntity>,
     pub created: chrono::DateTime<chrono::Utc>,
+    pub duration: chrono::Duration,
 }
 
 impl ScannerResult {
     pub fn created_display(&self) -> String {
         self.created.format("%Y-%m-%d %H:%M:%S UTC").to_string()
+    }
+
+    pub fn duration_display(&self) -> String {
+        format!(
+            "{:02}:{:02}.{:03}",
+            self.duration.num_minutes(),
+            self.duration.num_seconds() % 60,
+            self.duration.num_milliseconds() % 1000
+        )
     }
 
     pub async fn check_sensors(&mut self, pool: &DbPool) -> Result<(), Box<dyn std::error::Error>> {
@@ -69,6 +79,7 @@ pub struct ScannerService {
 
 impl ScannerService {
     async fn scan_inner(progress: Arc<Mutex<ScanProgress>>) -> Result<ScannerResult, String> {
+        let started = chrono::Utc::now();
         let Some(target) = pnet::datalink::interfaces().into_iter().find_map(|n| {
             n.ips
                 .into_iter()
@@ -103,9 +114,13 @@ impl ScannerService {
             }
         }
 
+        let created = chrono::Utc::now();
+        let duration = created - started;
+
         Ok(ScannerResult {
             sensors,
-            created: chrono::Utc::now(),
+            created,
+            duration,
         })
     }
 
