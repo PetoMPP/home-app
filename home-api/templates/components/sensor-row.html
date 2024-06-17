@@ -10,8 +10,8 @@
     <td> None </td>
     {% endif %}
     <td>
-        {% if let SensorActions::Home = action_type %}
-        {% include "components/home-sensor-actions.html" %}
+        {% if let SensorActions::Overview = action_type %}
+        {% include "components/overview-sensor-actions.html" %}
         {% else if let SensorActions::Scanner = action_type %}
         {% include "components/scanner-sensor-actions.html" %}
         {% endif %}

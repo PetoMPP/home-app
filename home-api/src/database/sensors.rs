@@ -1,5 +1,6 @@
 use super::{Database, DbConn};
 use crate::models::db::SensorEntity;
+use home_common::models::Sensor;
 
 pub trait SensorDatabase {
     async fn get_sensor(
@@ -11,11 +12,19 @@ pub trait SensorDatabase {
         &self,
         sensor: SensorEntity,
     ) -> Result<SensorEntity, Box<dyn std::error::Error>>;
+    async fn update_sensor(
+        &self,
+        host: &str,
+        sensor: Sensor,
+    ) -> Result<SensorEntity, Box<dyn std::error::Error>>;
     async fn delete_sensor(&self, host: &str) -> Result<(), Box<dyn std::error::Error>>;
 }
 
 impl SensorDatabase for DbConn {
-    async fn get_sensor(&self, host: &str) -> Result<Option<SensorEntity>, Box<dyn std::error::Error>> {
+    async fn get_sensor(
+        &self,
+        host: &str,
+    ) -> Result<Option<SensorEntity>, Box<dyn std::error::Error>> {
         Ok(self
             .query_single(&format!("SELECT * FROM sensors WHERE host = '{}'", host))
             .await?)
@@ -43,5 +52,19 @@ impl SensorDatabase for DbConn {
         self.execute(&format!("DELETE FROM sensors WHERE host = '{}'", host))
             .await?;
         Ok(())
+    }
+
+    async fn update_sensor(
+        &self,
+        host: &str,
+        sensor: Sensor,
+    ) -> Result<SensorEntity, Box<dyn std::error::Error>> {
+        Ok(self.query_single(
+            &format!("UPDATE sensors SET name = '{}', location = '{}', features = {} WHERE host = '{}' RETURNING *",
+            sensor.name,
+            sensor.location,
+            sensor.features,
+            host),
+        ).await?.ok_or("Error updating sensor")?)
     }
 }

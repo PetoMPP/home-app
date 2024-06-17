@@ -1,0 +1,26 @@
+<h1 hx-preserve id="sensor-edit-title" class="text-2xl font-semibold pb-6">Editing sensor hosted at: {{sensor.host}}.</h1>
+{% include "components/alert.html" %}
+<form class="flex flex-col gap-4 p-4">
+    <label class="input input-bordered flex items-center gap-2">
+        Name
+        <input hx-preserve id="name-input" type="text" class="grow" name="name" value="{{sensor.name}}" />
+    </label>
+    <label class="input input-bordered flex items-center gap-2">
+        Location
+        <input hx-preserve id="location-input" type="text" class="grow" name="location" value="{{sensor.location}}" />
+    </label>
+    <label class="input input-bordered flex items-center gap-2">
+        Features
+        <input hx-preserve id="features-input" type="text" class="grow" name="features" value="{{sensor.features}}" />
+    </label>
+    <label class="input input-bordered flex items-center gap-2">
+        Host
+        <input hx-preserve id="host-input" type="text" class="grow" value="{{sensor.host}}" disabled />
+    </label>
+    <label class="input input-bordered flex items-center gap-2">
+        Pair ID
+        <input hx-preserve id="host-pair-id" type="text" class="grow" value="{{sensor.pair_id.as_ref().cloned().unwrap_or_default()}}" disabled />
+    </label>
+    <button hx-preserve id="sensor-edit-submit" class="btn btn-primary" hx-post="/sensors/{{sensor.host}}" hx-target="#page-content"
+        data-loading-class="btn-disabled" hx-target-error="#page-content">Save</button>
+</form>

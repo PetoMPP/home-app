@@ -1,12 +1,14 @@
 use super::{is_hx_request, sensors::SensorActions};
 use crate::{
     database::{sensors::SensorDatabase, DbPool},
+    into_err,
     models::{auth::Token, User},
     services::{
         scanner_service::{ScanProgress, ScannerService, ScannerState},
         sensor_service::SensorService,
     },
     website::sensors::SensorRowTemplate,
+    ApiErrorResponse,
 };
 use askama::Template;
 use axum::{
@@ -18,7 +20,7 @@ use axum::{
     response::{Html, IntoResponse},
     Extension,
 };
-use reqwest::{Client, StatusCode};
+use reqwest::Client;
 use std::{net::SocketAddr, sync::Arc};
 use tokio::sync::Mutex;
 
@@ -42,18 +44,14 @@ pub async fn scanner(
     Extension(pool): Extension<DbPool>,
     token: Option<Token>,
     headers: HeaderMap,
-) -> Result<Html<String>, (StatusCode, String)> {
-    let conn = pool
-        .get()
+) -> Result<Html<String>, ApiErrorResponse> {
+    let conn = pool.get().await.map_err(into_err)?;
+    let current_user = Token::get_valid_user(token, &conn)
         .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    let current_user = Token::get_valid_user(token, &conn).await?;
+        .map_err(into_err)?;
     let mut state = scanner.lock().await.state().await;
     if let ScannerState::Idle(Some(result)) = &mut state {
-        result
-            .check_sensors(&pool)
-            .await
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+        result.check_sensors(&pool).await.map_err(into_err)?;
     }
     Ok(match is_hx_request(&headers) {
         true => Html(
@@ -102,10 +100,10 @@ pub async fn cancel(State(scanner): State<Arc<Mutex<ScannerService>>>) -> Html<S
 pub async fn pair_sensor(
     Extension(pool): Extension<DbPool>,
     Path(host): Path<String>,
-) -> Result<Html<String>, (StatusCode, HeaderMap, String)> {
+) -> Result<Html<String>, ApiErrorResponse> {
     let host = host.replace("-", ".");
     let sensor = Client::new().pair(&host).await.map_err(into_err)?;
-    let conn = pool.get().await.map_err(|e| into_err(e.into()))?;
+    let conn = pool.get().await.map_err(into_err)?;
     let sensor = conn.create_sensor(sensor).await.map_err(into_err)?;
 
     Ok(Html(
@@ -116,12 +114,6 @@ pub async fn pair_sensor(
         .render()
         .unwrap(),
     ))
-}
-
-fn into_err(e: Box<dyn std::error::Error>) -> (StatusCode, HeaderMap, String) {
-    let mut header_map = HeaderMap::new();
-    header_map.insert("Hx-Reswap", "innerHTML".parse().unwrap());
-    (StatusCode::INTERNAL_SERVER_ERROR, header_map, e.to_string())
 }
 
 #[derive(Template)]

@@ -4,7 +4,7 @@
         {% match current_user %}
         {% when Some with (curr) %}
         <li><a class="bg-neutral text-neutral-content" hx-get="/" hx-push-url="true" hx-target="#page-content"
-                        hx-swap="innerHtml">Home</a>
+                        hx-swap="innerHtml">Overview</a>
         </li>
         <li><a class="bg-neutral text-neutral-content" hx-get="/scanner" hx-push-url="true" hx-target="#page-content"
                         hx-swap="innerHtml">Scanner</a>

@@ -1,6 +1,8 @@
 use crate::{
     database::DbPool,
+    into_err,
     models::{auth::Token, User},
+    ApiErrorResponse,
 };
 use askama::Template;
 use axum::{
@@ -9,7 +11,7 @@ use axum::{
     Extension,
 };
 
-pub mod home;
+pub mod components;
 pub mod login;
 pub mod scanner;
 pub mod sensors;
@@ -37,12 +39,11 @@ pub async fn not_found(
     headers: HeaderMap,
     Extension(pool): Extension<DbPool>,
     token: Option<Token>,
-) -> Result<(StatusCode, Html<String>), (StatusCode, String)> {
-    let conn = pool
-        .get()
+) -> Result<(StatusCode, Html<String>), ApiErrorResponse> {
+    let conn = pool.get().await.map_err(into_err)?;
+    let current_user = Token::get_valid_user(token, &conn)
         .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    let current_user = Token::get_valid_user(token, &conn).await?;
+        .map_err(into_err)?;
     Ok((
         StatusCode::NOT_FOUND,
         match is_hx_request(&headers) {

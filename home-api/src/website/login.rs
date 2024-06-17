@@ -1,9 +1,11 @@
 use crate::{
     database::{user_sessions::UserSessionDatabase, users::UserDatabase, DbPool},
+    into_err,
     models::{
         auth::{Claims, Token},
         NormalizedString, User,
     },
+    ApiErrorResponse,
 };
 use askama::Template;
 use axum::{http::HeaderMap, response::Html, Extension, Form};
@@ -14,24 +16,21 @@ use serde::Deserialize;
 #[template(path = "pages/login.html")]
 pub struct LoginTemplate {
     pub current_user: Option<User>,
-    pub error: Option<String>,
+    pub alert_message: Option<String>,
 }
 
 #[derive(Template, Default)]
 #[template(path = "pages/login-inner.html")]
 pub struct LoginInnerTemplate {
-    pub error: Option<String>,
+    pub alert_message: Option<String>,
 }
 
 pub async fn login_page(
     token: Option<Token>,
     Extension(pool): Extension<DbPool>,
-) -> Result<Html<String>, (StatusCode, String)> {
-    let conn = pool
-        .get()
-        .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    let current_user = Token::get_valid_user(token, &conn).await?;
+) -> Result<Html<String>, ApiErrorResponse> {
+    let conn = pool.get().await.map_err(into_err)?;
+    let current_user = Token::get_valid_user(token, &conn).await.map_err(into_err)?;
     Ok(Html(
         LoginTemplate {
             current_user: current_user.clone(),
@@ -61,7 +60,7 @@ pub async fn login(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Html(
                     LoginInnerTemplate {
-                        error: Some(e.to_string()),
+                        alert_message: Some(e.to_string()),
                     }
                     .render()
                     .unwrap(),
@@ -72,7 +71,7 @@ pub async fn login(
             StatusCode::UNAUTHORIZED,
             Html(
                 LoginInnerTemplate {
-                    error: Some("Invalid username or password".to_string()),
+                    alert_message: Some("Invalid username or password".to_string()),
                 }
                 .render()
                 .unwrap(),
@@ -86,7 +85,7 @@ pub async fn login(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Html(
                     LoginInnerTemplate {
-                        error: Some(e.to_string()),
+                        alert_message: Some(e.to_string()),
                     }
                     .render()
                     .unwrap(),
@@ -100,7 +99,7 @@ pub async fn login(
                     StatusCode::INTERNAL_SERVER_ERROR,
                     Html(
                         LoginInnerTemplate {
-                            error: Some("Failed to create session".to_string()),
+                            alert_message: Some("Failed to create session".to_string()),
                         }
                         .render()
                         .unwrap(),
@@ -115,7 +114,7 @@ pub async fn login(
             StatusCode::UNAUTHORIZED,
             Html(
                 LoginInnerTemplate {
-                    error: Some("Invalid username or password".to_string()),
+                    alert_message: Some("Invalid username or password".to_string()),
                 }
                 .render()
                 .unwrap(),
@@ -133,7 +132,7 @@ pub async fn logout(
             StatusCode::UNAUTHORIZED,
             Html(
                 LoginInnerTemplate {
-                    error: Some("No session cookie".to_string()),
+                    alert_message: Some("No session cookie".to_string()),
                 }
                 .render()
                 .unwrap(),
@@ -145,7 +144,7 @@ pub async fn logout(
             StatusCode::UNAUTHORIZED,
             Html(
                 LoginInnerTemplate {
-                    error: Some("Invalid session".to_string()),
+                    alert_message: Some("Invalid session".to_string()),
                 }
                 .render()
                 .unwrap(),
@@ -160,7 +159,7 @@ pub async fn logout(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Html(
                     LoginInnerTemplate {
-                        error: Some("Failed to delete session".to_string()),
+                        alert_message: Some("Failed to delete session".to_string()),
                     }
                     .render()
                     .unwrap(),
