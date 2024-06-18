@@ -30,6 +30,7 @@ jobs:
     env:
       BRANCH: ${{ github.ref }}
       RETENTION_DAYS: 0
+      API_SECRET: just-to-pass-the-build-for-testing
 
     steps:
       - uses: actions/checkout@v4
