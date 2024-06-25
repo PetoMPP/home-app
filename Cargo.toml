@@ -1,6 +1,5 @@
 [workspace]
 members = ["home-api", "home-common"]
-exclude = ["home-sensor"]
 resolver = "2"
 
 [workspace.dependencies]
