@@ -1,3 +1,5 @@
+#pragma once
+
 #include <string.h>
 
 struct Request {
@@ -48,4 +50,24 @@ struct Request* parse_request(uint8_t* req_buff, int len) {
   strcpy(curr_req.body, start);
 
   return &curr_req;
+}
+
+enum Status {
+  sOK = 200,
+  sBAD_REQUEST = 400,
+  sNOT_FOUND = 404,
+  sINTERNAL_SERVER_ERROR = 500
+};
+
+const char* get_status_header(Status status) {
+  switch (status) {
+    case sOK:
+      return "HTTP/1.1 200 OK";
+    case sBAD_REQUEST:
+      return "HTTP/1.1 400 Bad Request";
+    case sNOT_FOUND:
+      return "HTTP/1.1 404 Not Found";
+    default:
+      return "HTTP/1.1 500 Internal Server Error";
+  }
 }

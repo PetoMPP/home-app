@@ -1,5 +1,8 @@
+#pragma once
+
 #include <WiFi.h>
 #include "my-http.h"
+#include "my-routes.h"
 
 WiFiServer server(42069);
 
@@ -18,13 +21,14 @@ void handle_client() {
       int len = client.read(req_buff, REQ_BUFF_LEN);
       Request* req = parse_request(req_buff, len);
       if (req == NULL) {
-        client.println("HTTP/1.1 400 BAD REQUEST");
+        client.println(get_status_header(sBAD_REQUEST));
+        client.println();
       } else {
         // ROUTES GO HERE
-        client.println("HTTP/1.1 200 OK");
+        Route route = match_route(req);
+        write_response(&client, route);
       }
 
-      client.println();
       client.flush();
       client.stop();
     }
