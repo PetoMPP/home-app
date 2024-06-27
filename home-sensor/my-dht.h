@@ -1,3 +1,5 @@
+#pragma once
+
 #include "DHT.h"
 
 #define DHTPIN 5
