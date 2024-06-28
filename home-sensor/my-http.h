@@ -1,7 +1,5 @@
 #pragma once
 
-#include <string.h>
-
 struct Request {
   char* method;
   char* route;

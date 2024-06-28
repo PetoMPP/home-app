@@ -26,7 +26,7 @@ void handle_client() {
       } else {
         // ROUTES GO HERE
         Route route = match_route(req);
-        write_response(&client, route);
+        write_response(&client, req, route);
       }
 
       client.flush();
