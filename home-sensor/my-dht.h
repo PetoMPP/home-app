@@ -4,6 +4,9 @@
 
 #define DHTPIN 5
 #define DHTTYPE DHT11
+#define DHT_TIMEOUT_MS 20000;
+
+ulong next_dht_read = 0;
 
 DHT dht(DHTPIN, DHTTYPE);
 
@@ -58,4 +61,12 @@ void print_dht_measurement(DhtMeasurement* measurement) {
   Serial.print(F("°C "));
   Serial.print(measurement->heat_index_f);
   Serial.println(F("°F"));
+}
+
+void handle_dht() {
+  if (millis() >= next_dht_read) {
+    struct DhtMeasurement measurement = read_dht_measurement();
+    print_dht_measurement(&measurement);
+    next_dht_read = millis() + DHT_TIMEOUT_MS;
+  }
 }
