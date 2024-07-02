@@ -2,15 +2,15 @@
 
 #include <ArduinoJson.h>
 #include <Preferences.h>
-#include "my-pairing.h" // to access preferences object
+#include "my-pairing.h"  // to access preferences object
 
 #define DATA_STORE_SIZE 0x1000
 
 struct DataStore {
-  char* name;
-  char* location;
+  char *name;
+  char *location;
   uint32_t _features;
-  uint32_t* features;
+  uint32_t *features;
 };
 
 JsonDocument data_store_to_json(struct DataStore store) {
@@ -27,12 +27,12 @@ JsonDocument data_store_to_json(struct DataStore store) {
 struct DataStore json_to_data_store(JsonDocument doc) {
   struct DataStore store = { NULL, NULL, 0, NULL };
 
-  const char* name = doc["name"];
+  const char *name = doc["name"];
   if (name != NULL) {
     store.name = new char[64];
     strcpy(store.name, name);
   }
-  const char* location = doc["location"];
+  const char *location = doc["location"];
   if (location != NULL) {
     store.location = new char[64];
     strcpy(store.location, location);
@@ -46,7 +46,7 @@ struct DataStore json_to_data_store(JsonDocument doc) {
   return store;
 }
 
-void merge_data_stores(DataStore* store, DataStore* rhs) {
+void merge_data_stores(DataStore *store, DataStore *rhs) {
   if (rhs->name != NULL) {
     store->name = new char[64];
     strcpy(store->name, rhs->name);
@@ -61,8 +61,8 @@ void merge_data_stores(DataStore* store, DataStore* rhs) {
   }
 }
 
-void set_data_store(struct DataStore store, int* len) {
-  char* buff = new char[DATA_STORE_SIZE];
+void set_data_store(struct DataStore store, int *len) {
+  char *buff = new char[DATA_STORE_SIZE];
   *len = serializeJson(data_store_to_json(store), buff, DATA_STORE_SIZE);
   int last = *len;
   buff[last] = '\0';
@@ -72,8 +72,8 @@ void set_data_store(struct DataStore store, int* len) {
 }
 
 struct DataStore
-get_data_store(int* len) {
-  char* buff = new char[DATA_STORE_SIZE];
+get_data_store(int *len) {
+  char *buff = new char[DATA_STORE_SIZE];
   preferences.begin("data");
   *len = preferences.getString("store", buff, DATA_STORE_SIZE);
   preferences.end();
