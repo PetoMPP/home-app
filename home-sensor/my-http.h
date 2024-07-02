@@ -7,6 +7,24 @@ struct Request {
   char* body;
 };
 
+void get_header_value(Request* req, const char* header_key, char* header_value) {
+  const char* headers = req->headers;
+  const char* key_start = strcasestr(headers, header_key);
+  if (key_start == NULL) {
+    header_value = NULL;
+    return;
+  }
+  const char* value_start = key_start + strlen(header_key) + 2;
+  const char* value_end = strstr(value_start, "\r\n");
+  if (value_end == NULL) {
+    header_value = NULL;
+    return;
+  }
+
+  strncpy(header_value, value_start, value_end - value_start);
+  header_value[value_end - value_start] = '\0';
+}
+
 struct Request curr_req;
 
 struct Request* parse_request(uint8_t* req_buff, int len) {
@@ -53,6 +71,8 @@ struct Request* parse_request(uint8_t* req_buff, int len) {
 enum Status {
   sOK = 200,
   sBAD_REQUEST = 400,
+  sUNAUTHORIZED = 401,
+  sFORBIDDEN = 403,
   sNOT_FOUND = 404,
   sINTERNAL_SERVER_ERROR = 500
 };
@@ -63,6 +83,10 @@ const char* get_status_header(Status status) {
       return "HTTP/1.1 200 OK";
     case sBAD_REQUEST:
       return "HTTP/1.1 400 Bad Request";
+    case sUNAUTHORIZED:
+      return "HTTP/1.1 401 Unauthorized";
+    case sFORBIDDEN:
+      return "HTTP/1.1 403 Forbidden";
     case sNOT_FOUND:
       return "HTTP/1.1 404 Not Found";
     default:

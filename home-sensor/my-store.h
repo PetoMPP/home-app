@@ -2,10 +2,9 @@
 
 #include <ArduinoJson.h>
 #include <Preferences.h>
+#include "my-pairing.h" // to access preferences object
 
-#define STORE_SIZE 0x5000
-
-Preferences preferences;
+#define DATA_STORE_SIZE 0x1000
 
 struct DataStore {
   char* name;
@@ -14,7 +13,7 @@ struct DataStore {
   uint32_t* features;
 };
 
-JsonDocument store_to_json(struct DataStore store) {
+JsonDocument data_store_to_json(struct DataStore store) {
   JsonDocument doc;
   doc["name"] = store.name;
   doc["location"] = store.location;
@@ -25,8 +24,8 @@ JsonDocument store_to_json(struct DataStore store) {
   return doc;
 }
 
-struct DataStore json_to_store(JsonDocument doc) {
-  struct DataStore store = { NULL, NULL, 0, NULL};
+struct DataStore json_to_data_store(JsonDocument doc) {
+  struct DataStore store = { NULL, NULL, 0, NULL };
 
   const char* name = doc["name"];
   if (name != NULL) {
@@ -47,48 +46,46 @@ struct DataStore json_to_store(JsonDocument doc) {
   return store;
 }
 
-void merge_stores(DataStore* store, DataStore* rhs) {
+void merge_data_stores(DataStore* store, DataStore* rhs) {
   if (rhs->name != NULL) {
-    // Serial.println(rhs->name);
     store->name = new char[64];
     strcpy(store->name, rhs->name);
   }
   if (rhs->location != NULL) {
-    // Serial.println(rhs->location);
     store->location = new char[64];
     strcpy(store->location, rhs->location);
   }
   if (rhs->features != NULL) {
-    // Serial.println(*rhs->features);
     store->_features = rhs->_features;
     store->features = &store->_features;  // probably not needed
   }
 }
 
-void set_data_store(struct DataStore store) {
-  char* buff = new char[STORE_SIZE];
-  int len = serializeJson(store_to_json(store), buff, STORE_SIZE);
-  buff[len] = '\0';
+void set_data_store(struct DataStore store, int* len) {
+  char* buff = new char[DATA_STORE_SIZE];
+  *len = serializeJson(data_store_to_json(store), buff, DATA_STORE_SIZE);
+  int last = *len;
+  buff[last] = '\0';
   preferences.begin("data");
   preferences.putString("store", buff);
   preferences.end();
 }
 
 struct DataStore
-get_data_store() {
-  char* buff = new char[STORE_SIZE];
+get_data_store(int* len) {
+  char* buff = new char[DATA_STORE_SIZE];
   preferences.begin("data");
-  int len = preferences.getString("store", buff, STORE_SIZE);
+  *len = preferences.getString("store", buff, DATA_STORE_SIZE);
   preferences.end();
   JsonDocument doc;
-  DeserializationError err = deserializeJson(doc, buff, len);
+  DeserializationError err = deserializeJson(doc, buff, *len);
   if (err) {
     // Fix store with empty json
     Serial.println(F("Unable to read store"));
     struct DataStore result = { new char[64], new char[64], 0 };
-    set_data_store(result);
+    set_data_store(result, len);
     return result;
   }
 
-  return json_to_store(doc);
+  return json_to_data_store(doc);
 }

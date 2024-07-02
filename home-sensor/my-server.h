@@ -24,7 +24,6 @@ void handle_client() {
         client.println(get_status_header(sBAD_REQUEST));
         client.println();
       } else {
-        // ROUTES GO HERE
         Route route = match_route(req);
         write_response(&client, req, route);
       }
