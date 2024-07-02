@@ -7,6 +7,7 @@
 Preferences preferences;
 
 #define PAIR_BUTTON_PIN 2
+#define RNG_PIN 3 // disconnected pin
 #define PAIR_STORE_SIZE 0x1000
 #define PAIR_TIMEOUT_MS 30000;
 
@@ -18,7 +19,7 @@ UUID next_id;
 void pairing_init() {
   pinMode(PAIR_BUTTON_PIN, INPUT);
   last_button_state = digitalRead(PAIR_BUTTON_PIN);
-  randomSeed(analogRead(3));
+  randomSeed(analogRead(RNG_PIN));
   next_id.seed(random());
 }
 

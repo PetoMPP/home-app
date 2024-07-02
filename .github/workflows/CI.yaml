@@ -42,34 +42,32 @@ jobs:
         with:
           command: test
 
-  test-sensor:
-    name: Test Sensor
+  compile-sensor:
     runs-on: ubuntu-latest
-    env:
-      SSID: mocked-ssid
-      WIFI_PASSWORD: mocked-password
     defaults:
       run:
         working-directory: home-sensor
+
     steps:
-      - name: Checkout sources
+      - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Cache
-        uses: actions/cache@v4
+
+      - name: Create my-secret.h
+        run: |
+          echo "#pragma once" > my-secret.h
+          echo "char ssid[] = \"ssid\";" >> my-secret.h
+          echo "char pass[] = \"password\";" >> my-secret.h
+
+      - name: Compile sketch
+        uses: arduino/compile-sketches@v1
         with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-test-${{ hashFiles('**/Cargo.toml') }}
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: nightly-2023-11-14
-          targets: riscv32imc-unknown-none-elf
-          components: rust-src
-      - run: cargo build --release --target riscv32imc-unknown-none-elf
+          sketch-paths: ./
+          libraries: |
+            - name: "Adafruit Unified Sensor"
+            - name: "ArduinoJson"
+            - name: "DHT sensor library"
+            - name: "UUID"
+          fqbn: "esp32:esp32:esp32"
 
   # Run cargo clippy -- -D warnings
   clippy_check:

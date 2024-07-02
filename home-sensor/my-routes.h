@@ -1,11 +1,9 @@
-#include <vector>
-#include <string.h>
 #pragma once
 
 #include <WiFi.h>
 #include <ArduinoJson.h>
 #include "my-http.h"
-#include "my-store.h"
+#include "my-data.h"
 #include "my-pairing.h"
 
 enum Route {
@@ -147,7 +145,7 @@ void write_response(NetworkClient* client, Request* req, Route route) {
           client->print(json_str);
           return;
         }
-        
+
         strcpy(pair_store.keys[pair_store.count], pair_key);
         set_pair_store(pair_store, &pair_len);
         client->println(get_status_header(sOK));

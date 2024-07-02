@@ -2,7 +2,7 @@
 #include "my-wifi.h"
 #include "my-server.h"
 #include "my-pairing.h"
-#include "secret.h"
+#include "my-secret.h"
 
 #define LED_PIN 7
 

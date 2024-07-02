@@ -5,30 +5,19 @@ The temperature and humidity data is being developed.
 
 # Schematics
 
-The schematics for the sensor can be found in the `schematics` directory. The schematics are created using the KiCad EDA software.
+The schematics for the sensor can be found in the `schematics` directory. The schematics are created using [Tinkercad®](https://www.tinkercad.com/).
 
-# Building
+# Building and flashing
 
-To build the project, you need to have the Cargo build system installed. You can install it by following the instructions on the [Rust website](https://www.rust-lang.org/tools/install).
+Before building the project you need to create a `my-secrets.h` file. The file should contain the following:
 
-To make the build successful, you need to have the following environment variables set:
-- `SSID` - the SSID of the WiFi network
-- `WIFI_PASSWORD` - the password of the WiFi network
+```c
 
-After installing Cargo, you can build the project by running the following command:
+#pragma once
 
-```bash
-cargo build --release
+char ssid[] = "<SSID>";
+char pass[] = "<PASSWORD>";
+
 ```
 
-The binary will be located in the `target/release` directory.
-
-# Running
-
-You can use the following command to flash the binary to the board:
-
-```bash
-cargo run --release
-```
-
-It will build the project and flash it to the board. The serial output will be in the terminal.
+To build and flash the project you need the [Arduino IDE](https://docs.arduino.cc/software/ide/#ide-v2) and the ESP32 board installed. The board can be installed using the board manager in the Arduino IDE. The board I used is `XIAO_ESP32C3`.
