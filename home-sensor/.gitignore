@@ -1,1 +1,4 @@
 my-secret.h
+build/
+# Should be generated from arduino.json
+.vscode/c_cpp_properties.json
