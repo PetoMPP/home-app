@@ -2,9 +2,9 @@
 
 #include <WiFi.h>
 #include <ArduinoJson.h>
-#include "my-http.h"
-#include "my-data.h"
-#include "my-pairing.h"
+#include "http.h"
+#include "data.h"
+#include "pairing.h"
 
 enum Route {
   rSENSOR_GET,

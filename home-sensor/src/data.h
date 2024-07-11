@@ -2,7 +2,7 @@
 
 #include <ArduinoJson.h>
 #include <Preferences.h>
-#include "my-pairing.h"  // to access preferences object
+#include "pairing.h"  // to access preferences object
 
 #define DATA_STORE_SIZE 0x1000
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "DHT.h"
+#include <DHT.h>
 
 #define DHTPIN 5
 #define DHTTYPE DHT11
