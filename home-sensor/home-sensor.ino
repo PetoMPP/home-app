@@ -1,8 +1,8 @@
-#include "my-dht.h"
-#include "my-wifi.h"
-#include "my-server.h"
-#include "my-pairing.h"
-#include "my-secret.h"
+#include "src/dht.h"
+#include "src/wifi.h"
+#include "src/server.h"
+#include "src/pairing.h"
+#include "src/secret.h"
 
 #define LED_PIN 7
 

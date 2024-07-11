@@ -1,8 +1,8 @@
 #pragma once
 
 #include <WiFi.h>
-#include "my-http.h"
-#include "my-routes.h"
+#include "http.h"
+#include "routes.h"
 
 WiFiServer server(42069);
 
