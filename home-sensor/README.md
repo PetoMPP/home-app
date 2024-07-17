@@ -9,7 +9,7 @@ The schematics for the sensor can be found in the `schematics` directory. The sc
 
 # Building and flashing
 
-Before building the project you need to create a `my-secrets.h` file. The file should contain the following:
+Before building the project you need to create a `secrets.h` file in src directory. The file should contain the following:
 
 ```c
 
@@ -20,4 +20,4 @@ char pass[] = "<PASSWORD>";
 
 ```
 
-To build and flash the project you need the [Arduino IDE](https://docs.arduino.cc/software/ide/#ide-v2) and the ESP32 board installed. The board can be installed using the board manager in the Arduino IDE. The board I used is `XIAO_ESP32C3`.
+To build and flash the project you need the [Arduino VS Code Extension](https://marketplace.visualstudio.com/items?itemName=vsciot-vscode.vscode-arduino). Configuration file `.vscode/arduino.json` is provided with optimal setting for `XIAO_ESP32C3` board and only `port` might need adjustments. 
