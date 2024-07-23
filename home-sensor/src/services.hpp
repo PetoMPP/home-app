@@ -1,5 +1,6 @@
 #pragma once
 
+#include "services/dht.hpp"
 #include "services/led.hpp"
 #include "services/pairing.hpp"
 #include "services/sensor.hpp"

@@ -1,6 +1,5 @@
 #include <Preferences.h>
 
-#include "src/dht.h"
 #include "src/services.hpp"
 #include "src/secret.h"
 
@@ -9,6 +8,7 @@ LedService *led_service = new LedService();
 WifiService *wifi_service = new WifiService(ssid, pass);
 PairingService *pairing_service = new PairingService(&prefs);
 SensorService *sensor_service = new SensorService(&prefs);
+DhtService *dht_service = new DhtService(&prefs);
 
 std::vector<Route *> all_routes = {
     new GetSensorRoute(sensor_service, pairing_service),
@@ -26,7 +26,8 @@ void setup()
   led_service->init();
   led_service->set(HIGH);
   wifi_service->init();
-  dht_init();
+  dht_service->init();
+  configTime(0, 0, "pool.ntp.org", "time.nist.gov");
   server_service->init();
   pairing_service->init();
   led_service->set(LOW);
@@ -34,7 +35,7 @@ void setup()
 
 void loop()
 {
-  handle_dht();
+  dht_service->handle();
   pairing_service->handle();
   server_service->handle();
 }
