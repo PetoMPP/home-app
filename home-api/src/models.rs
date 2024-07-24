@@ -301,8 +301,8 @@ pub mod db {
     impl From<SensorEntity> for Sensor {
         fn from(val: SensorEntity) -> Self {
             Sensor {
-                name: heapless::String::from_str(val.name.as_str()).unwrap(),
-                location: heapless::String::from_str(val.location.as_str()).unwrap(),
+                name: val.name,
+                location: val.location,
                 features: val.features,
             }
         }
@@ -311,8 +311,8 @@ pub mod db {
     impl From<SensorEntity> for SensorDto {
         fn from(val: SensorEntity) -> Self {
             SensorDto {
-                name: Some(heapless::String::from_str(val.name.as_str()).unwrap()),
-                location: Some(heapless::String::from_str(val.location.as_str()).unwrap()),
+                name: Some(val.name),
+                location: Some(val.location),
                 features: Some(val.features),
             }
         }

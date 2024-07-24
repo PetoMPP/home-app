@@ -1,27 +1,25 @@
-#![no_std]
 pub mod consts {
     pub const SENSOR_PORT: u16 = 42069;
     pub const PAIR_HEADER_NAME: &str = "X-Pair-Id";
 }
 
 pub mod models {
-    use heapless::String;
     use serde::{Deserialize, Serialize};
 
     #[derive(Serialize, Deserialize, Debug, Default, Clone)]
     pub struct ErrorResponse {
-        pub error: String<256>,
+        pub error: String,
     }
 
     #[derive(Serialize, Deserialize, Debug, Default, Clone)]
     pub struct PairResponse {
-        pub id: String<32>,
+        pub id: String,
     }
 
     #[derive(Serialize, Deserialize, Debug, Default, Clone)]
     pub struct Sensor {
-        pub name: String<64>,
-        pub location: String<64>,
+        pub name: String,
+        pub location: String,
         pub features: u32,
     }
 
@@ -47,8 +45,8 @@ pub mod models {
 
     #[derive(Debug, Default, Serialize, Deserialize, Clone)]
     pub struct SensorDto {
-        pub name: Option<String<64>>,
-        pub location: Option<String<64>>,
+        pub name: Option<String>,
+        pub location: Option<String>,
         pub features: Option<u32>,
     }
 
@@ -64,8 +62,8 @@ pub mod models {
 
     #[derive(Debug, Default, Serialize, Deserialize, Clone)]
     pub struct SensorResponse {
-        pub name: String<64>,
-        pub location: String<64>,
+        pub name: String,
+        pub location: String,
         pub features: u32,
         pub pairing: bool,
         pub paired_keys: u32,
@@ -74,15 +72,17 @@ pub mod models {
 
     #[derive(Default, Debug, Serialize, Deserialize, Clone, Copy)]
     pub struct StoreUsage {
-        pub used: u32,
-        pub total: u32,
+        pub data_used: u32,
+        pub data_total: u32,
+        pub pair_used: u32,
+        pub pair_total: u32,
     }
 
-    impl StoreUsage {
-        pub fn percent(&self) -> f32 {
-            self.used as f32 * 100.0 / self.total as f32
-        }
-    }
+    // impl StoreUsage {
+    //     pub fn percent(&self) -> f32 {
+    //         self.used as f32 * 100.0 / self.total as f32
+    //     }
+    // }
 }
 
 pub mod prelude {

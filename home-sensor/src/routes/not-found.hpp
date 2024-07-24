@@ -15,10 +15,8 @@ public:
 
     void write_response(NetworkClient *client, Request *req) override
     {
-        client->println("HTTP/1.1 404 Not Found");
-        client->println("Content-Type: text/plain");
-        client->println("Content-Length: 9");
-        client->println();
-        client->println("Not Found");
+        JsonDocument json;
+        json["error"] = "Not found";
+        write_json(client, &json, sNOT_FOUND);
     }
 };
