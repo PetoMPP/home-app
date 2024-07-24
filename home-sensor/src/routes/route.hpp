@@ -4,9 +4,17 @@
 
 class Route
 {
+protected:
+    const char* route;
+    const char* method;
 public:
-    Route() {}
-    virtual bool match(Request *req) = 0;
+    Route(const char* r, const char* m) {
+        route = r;
+        method = m;
+    }
+    virtual bool match(Request* req) {
+        return strcmp(req->method, method) == 0 && strcmp(req->route, route) == 0;
+    }
     virtual void write_response(NetworkClient *client, Request *req) = 0;
 };
 

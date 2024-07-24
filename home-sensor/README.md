@@ -1,7 +1,7 @@
 # Home sensor
 
 The ESP32 based sensor for the home app. Currently it is based on the ESP32-C3 board and is hosting an API for sending environmental data to the home api.
-The temperature and humidity data is being developed.
+Right now it exposes temperature and humidity data from Dht11.
 
 # Schematics
 
@@ -9,7 +9,7 @@ The schematics for the sensor can be found in the `schematics` directory. The sc
 
 # Building and flashing
 
-Before building the project you need to create a `secrets.h` file in src directory. The file should contain the following:
+Before building the project you need to create a `secret.h` file in src directory. The file should contain the following:
 
 ```c
 

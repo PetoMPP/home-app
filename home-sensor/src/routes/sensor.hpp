@@ -10,16 +10,10 @@ private:
     PairingService *pairing_service;
 
 public:
-    GetSensorRoute(SensorService *s, PairingService *p)
+    GetSensorRoute(SensorService *s, PairingService *p) : Route("/sensor", "GET")
     {
         data_service = s;
         pairing_service = p;
-    }
-    bool match(Request *req) override
-    {
-        const char *method = req->method;
-        const char *route = req->route;
-        return strcmp(method, "GET") == 0 && strcmp(route, "/sensor") == 0;
     }
 
     void write_response(NetworkClient *client, Request *req) override
@@ -47,16 +41,10 @@ private:
     PairingService *pairing_service;
 
 public:
-    PostSensorRoute(SensorService *s, PairingService *p)
+    PostSensorRoute(SensorService *s, PairingService *p) : Route("/sensor", "POST")
     {
         data_service = s;
         pairing_service = p;
-    }
-    bool match(Request *req) override
-    {
-        const char *method = req->method;
-        const char *route = req->route;
-        return strcmp(method, "POST") == 0 && strcmp(route, "/sensor") == 0;
     }
 
     void write_response(NetworkClient *client, Request *req) override

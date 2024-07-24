@@ -9,15 +9,9 @@ private:
     PairingService *pairing_service;
 
 public:
-    PairRoute(PairingService *p)
+    PairRoute(PairingService *p) : Route("/pair", "POST")
     {
         pairing_service = p;
-    }
-    bool match(Request *req) override
-    {
-        const char *method = req->method;
-        const char *route = req->route;
-        return strcmp(method, "POST") == 0 && strcmp(route, "/pair") == 0;
     }
 
     void write_response(NetworkClient *client, Request *req) override
@@ -41,16 +35,9 @@ private:
     PairingService *pairing_service;
 
 public:
-    PairConfirmRoute(PairingService *p)
+    PairConfirmRoute(PairingService *p) : Route("/pair/confirm", "POST")
     {
         pairing_service = p;
-    }
-
-    bool match(Request *req) override
-    {
-        const char *method = req->method;
-        const char *route = req->route;
-        return strcmp(method, "POST") == 0 && strcmp(route, "/pair/confirm") == 0;
     }
 
     void write_response(NetworkClient *client, Request *req) override
