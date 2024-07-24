@@ -21,6 +21,7 @@ public:
         SensorStore *data_store = data_service->get_store();
         PairStore *pair_store = pairing_service->get_store();
         JsonDocument json = JsonDocument(*data_store->as_json());
+        json["pairing"] = pairing_service->pairing;
         json["paired_keys"] = pair_store->count;
         JsonDocument jobj;
         JsonObject usage = jobj.to<JsonObject>();
