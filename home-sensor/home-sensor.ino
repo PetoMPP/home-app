@@ -15,6 +15,7 @@ std::vector<Route *> all_routes = {
     new PostSensorRoute(sensor_service, pairing_service),
     new PairRoute(pairing_service),
     new PairConfirmRoute(pairing_service),
+    new DhtRoute(dht_service, pairing_service),
     new NotFoundRoute(),
 };
 
