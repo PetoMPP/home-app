@@ -1,6 +1,5 @@
 use super::{Database, DbConn};
-use crate::models::db::SensorEntity;
-use home_common::models::Sensor;
+use crate::models::{db::SensorEntity, json::Sensor};
 
 pub trait SensorDatabase {
     async fn get_sensor(

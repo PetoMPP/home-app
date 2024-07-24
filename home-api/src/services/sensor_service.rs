@@ -1,7 +1,12 @@
 use super::http_client::HttpRequest;
-use crate::models::db::SensorEntity;
-use home_common::models::{ErrorResponse, PairResponse, Sensor, SensorDto, SensorResponse};
+use crate::models::{
+    db::SensorEntity,
+    json::{ErrorResponse, PairResponse, Sensor, SensorDto, SensorResponse},
+};
 use std::{error::Error, time::Duration};
+
+const SENSOR_PORT: u16 = 42069;
+const PAIR_HEADER_NAME: &str = "X-Pair-Id";
 
 pub trait SensorService {
     async fn get_sensor(&self, host: &str) -> Result<SensorEntity, Box<dyn Error>>;
@@ -16,7 +21,7 @@ pub trait SensorService {
 
 impl SensorService for reqwest::Client {
     async fn get_sensor(&self, host: &str) -> Result<SensorEntity, Box<dyn Error>> {
-        let host_uri = format!("http://{}:{}/", host, home_common::consts::SENSOR_PORT);
+        let host_uri = format!("http://{}:{}/", host, SENSOR_PORT);
         let Ok(response) = self
             .get(host_uri.clone() + "sensor")
             .timeout(std::time::Duration::from_secs_f32(0.2))
@@ -38,7 +43,7 @@ impl SensorService for reqwest::Client {
     }
 
     async fn pair(&self, host: &str) -> Result<SensorEntity, Box<dyn Error>> {
-        let host_uri = format!("http://{}:{}/", host, home_common::consts::SENSOR_PORT);
+        let host_uri = format!("http://{}:{}/", host, SENSOR_PORT);
         let response = self
             .post(host_uri.clone() + "pair")
             .send_parse::<PairResponse, ErrorResponse>()
@@ -52,7 +57,7 @@ impl SensorService for reqwest::Client {
 
         let response = self
             .post(host_uri.clone() + "pair/confirm")
-            .header(home_common::consts::PAIR_HEADER_NAME, id.as_str())
+            .header(PAIR_HEADER_NAME, id.as_str())
             .send_parse_err::<ErrorResponse>()
             .await?
             .map_err(|e| e.error.to_string())?;
@@ -74,11 +79,11 @@ impl SensorService for reqwest::Client {
         pair_id: &str,
         sensor: Sensor,
     ) -> Result<Sensor, Box<dyn Error>> {
-        let host_uri = format!("http://{}:{}/", host, home_common::consts::SENSOR_PORT);
+        let host_uri = format!("http://{}:{}/", host, SENSOR_PORT);
         let sensor_dto = sensor.into();
         let response = self
             .post(host_uri.clone() + "sensor")
-            .header(home_common::consts::PAIR_HEADER_NAME, pair_id)
+            .header(PAIR_HEADER_NAME, pair_id)
             .json::<SensorDto>(&sensor_dto)
             .send_parse_err::<ErrorResponse>()
             .await?
