@@ -2,7 +2,7 @@ use super::{components::alert::AlertType, is_hx_request};
 use crate::{
     database::{sensors::SensorDatabase, DbPool},
     into_err, into_err_str,
-    models::{auth::Token, db::SensorEntity, User},
+    models::{auth::Token, db::SensorEntity, json::Sensor, User},
     services::sensor_service::SensorService,
     ApiErrorResponse,
 };
@@ -13,7 +13,6 @@ use axum::{
     response::Html,
     Extension,
 };
-use home_common::models::Sensor;
 use reqwest::Client;
 
 #[derive(Template)]

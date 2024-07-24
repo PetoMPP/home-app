@@ -28,10 +28,6 @@ refinery::embed_migrations!("migrations");
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // workaround for running the app from the root of the workspace
-    if std::env::current_dir()?.ends_with("home-app") {
-        std::env::set_current_dir("home-api")?;
-    }
     // initialize tracing
     #[cfg(debug_assertions)]
     tracing_subscriber::fmt()
