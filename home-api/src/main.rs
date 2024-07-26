@@ -52,7 +52,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         conn.ensure_admin().await?;
     }
     // create services
-    let mut scanner = ScannerService::default();
+    let mut scanner = ScannerService::new(tokio::runtime::Builder::new_current_thread().enable_all().build()?);
     scanner.init(pool.clone()).await;
     let scanner = Mutex::new(scanner);
     let scanner = Arc::new(scanner);
