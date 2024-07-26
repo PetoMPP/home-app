@@ -53,7 +53,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     // create services
     let mut scanner = ScannerService::default();
-    scanner.init().await;
+    scanner.init(pool.clone()).await;
     let scanner = Mutex::new(scanner);
     let scanner = Arc::new(scanner);
     // start a task to delete expired tokens
@@ -104,14 +104,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 pub type ApiErrorResponse = (StatusCode, HeaderMap, String);
 
+pub fn into_err_sync(e: impl Into<Box<dyn std::error::Error + Send + Sync>>) -> ApiErrorResponse {
+    let box_err = e.into().to_string();
+    into_err_str(match box_err.as_str() {
+        "" => None,
+        e => Some(e),
+    })
+}
+
 pub fn into_err(e: impl Into<Box<dyn std::error::Error>>) -> ApiErrorResponse {
-    let mut header_map = HeaderMap::new();
-    header_map.insert("Hx-Reswap", "innerHTML".parse().unwrap());
-    (
-        StatusCode::INTERNAL_SERVER_ERROR,
-        header_map,
-        e.into().to_string(),
-    )
+    let box_err = e.into().to_string();
+    into_err_str(match box_err.as_str() {
+        "" => None,
+        e => Some(e),
+    })
 }
 
 pub fn into_err_str(e: Option<impl Into<String>>) -> ApiErrorResponse {

@@ -300,7 +300,10 @@ pub mod db {
         json::{Sensor, SensorDto},
         NormalizedString, User,
     };
-    use crate::database::FromRow;
+    use crate::{
+        database::{sensors::SensorDatabase, FromRow},
+        services::{scanner_service::Scannable, sensor_service::SensorService},
+    };
     use r2d2_sqlite::rusqlite;
     use std::str::FromStr;
 
@@ -350,6 +353,37 @@ pub mod db {
         pub features: u32,
         pub host: String,
         pub pair_id: Option<String>,
+    }
+
+    impl Scannable for SensorEntity {
+        type Error = String;
+
+        fn scan(
+            client: &reqwest::Client,
+            host: &str,
+        ) -> impl std::future::Future<
+            Output = Result<Result<Self, Self::Error>, Box<dyn std::error::Error + Send + Sync>>,
+        > + Send {
+            client.get_sensor(host)
+        }
+
+        fn check(
+            &mut self,
+            pool: &crate::database::DbPool,
+        ) -> impl std::future::Future<Output = Result<(), Box<dyn std::error::Error + Send + Sync>>> + Send
+        {
+            async move {
+                self.pair_id = pool
+                    .get()
+                    .await
+                    .map_err(|e| e.to_string())?
+                    .get_sensor(&self.host)
+                    .await
+                    .map_err(|e| e.to_string())?
+                    .and_then(|s| s.pair_id);
+                Ok(())
+            }
+        }
     }
 
     impl FromRow for SensorEntity {

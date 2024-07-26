@@ -1,14 +1,29 @@
+<div ws-connect="/scan/status" class="absolute"></div>
 <div id="scanner-inner">
     <h1 class="text-3xl font-bold pb-6">Scanner page</h1>
-    {% match state %}
-    {% when ScannerState::Idle with (result)%}
-    {% include "components/scanner-result.html" %}
-
-    {% when ScannerState::Scanning with (progress) %}
-    {% include "components/scanner-progress.html" %}
-
-    {% when ScannerState::Error with (error) %}
-    <p>Error: {{ error }}</p>
-
-    {% endmatch %}
+    <div class="flex flex-col pb-4 gap-6">
+        {% match state %}
+        {% when ScannerState::Idle with (result)%}
+        {% match result %}
+        {% when Some with (result) %}
+        <p>Sensor data fetched at {{ result.created_display()}} in {{result.duration_display()}}.</p>
+        {% when None %}
+        <p>No sensor data fetched yet</p>
+        {% endmatch %}
+        <a class="btn btn-primary self-end" hx-post="/scan" hx-trigger="click" hx-swap="innerHTML"
+            hx-target="#scanner-inner">
+            Scan now!
+        </a>
+        {% when ScannerState::Scanning with (progress) %}
+        <p>Scanner is scanning network addresses on <strong>{{progress.target}}x</strong>.</p>
+        <div class="flex gap-4">
+            {% include "components/scanner-progress.html" %}
+            <a class="btn btn-error no-animation" hx-post="/scan/cancel" hx-trigger="click" hx-swap="none">Cancel</a>
+        </div>
+        {% when ScannerState::Error with (error) %}
+        <p>Error: {{ error }}</p>
+        {% endmatch %}
+    </div>
+    {% let sensors = state.scanned().clone() %}
+    {% include "components/sensor-table.html" %}
 </div>

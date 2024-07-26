@@ -1,10 +1,10 @@
 use super::{is_hx_request, sensors::SensorActions};
 use crate::{
     database::{sensors::SensorDatabase, DbPool},
-    into_err,
-    models::{auth::Token, User},
+    into_err, into_err_sync,
+    models::{auth::Token, db::SensorEntity, User},
     services::{
-        scanner_service::{ScanProgress, ScannerService, ScannerState},
+        scanner_service::{ScannerService, ScannerState},
         sensor_service::SensorService,
     },
     website::sensors::SensorRowTemplate,
@@ -21,26 +21,28 @@ use axum::{
     Extension,
 };
 use reqwest::Client;
-use std::{net::SocketAddr, sync::Arc};
+use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tokio::sync::Mutex;
 
 #[derive(Template)]
 #[template(path = "pages/scanner.html")]
 pub struct ScannerTemplate {
     pub current_user: Option<User>,
-    pub state: ScannerState,
+    pub state: ScannerState<SensorEntity>,
     pub action_type: SensorActions,
+    pub sensors: Vec<SensorEntity>,
 }
 
 #[derive(Template)]
 #[template(path = "pages/scanner-inner.html")]
 pub struct ScannerInnerTemplate {
-    pub state: ScannerState,
+    pub state: ScannerState<SensorEntity>,
     pub action_type: SensorActions,
+    pub sensors: Vec<SensorEntity>,
 }
 
 pub async fn scanner(
-    State(scanner): State<Arc<Mutex<ScannerService>>>,
+    State(scanner): State<Arc<Mutex<ScannerService<SensorEntity>>>>,
     Extension(pool): Extension<DbPool>,
     token: Option<Token>,
     headers: HeaderMap,
@@ -49,15 +51,14 @@ pub async fn scanner(
     let current_user = Token::get_valid_user(token, &conn)
         .await
         .map_err(into_err)?;
-    let mut state = scanner.lock().await.state().await;
-    if let ScannerState::Idle(Some(result)) = &mut state {
-        result.check_sensors(&pool).await.map_err(into_err)?;
-    }
+    let state = scanner.lock().await.state().await;
+    let sensors = state.scanned();
     Ok(match is_hx_request(&headers) {
         true => Html(
             ScannerInnerTemplate {
                 state,
                 action_type: SensorActions::Scanner,
+                sensors,
             }
             .render()
             .unwrap(),
@@ -67,6 +68,7 @@ pub async fn scanner(
                 state,
                 current_user,
                 action_type: SensorActions::Scanner,
+                sensors,
             }
             .render()
             .unwrap(),
@@ -74,10 +76,15 @@ pub async fn scanner(
     })
 }
 
-pub async fn scan(State(scanner): State<Arc<Mutex<ScannerService>>>) -> Html<String> {
+pub async fn scan(
+    State(scanner): State<Arc<Mutex<ScannerService<SensorEntity>>>>,
+    Extension(pool): Extension<DbPool>,
+) -> Html<String> {
+    let state = scanner.lock().await.init(pool).await;
     Html(
         ScannerInnerTemplate {
-            state: scanner.lock().await.init().await,
+            sensors: state.scanned(),
+            state,
             action_type: SensorActions::Scanner,
         }
         .render()
@@ -85,11 +92,15 @@ pub async fn scan(State(scanner): State<Arc<Mutex<ScannerService>>>) -> Html<Str
     )
 }
 
-pub async fn cancel(State(scanner): State<Arc<Mutex<ScannerService>>>) -> Html<String> {
+pub async fn cancel(
+    State(scanner): State<Arc<Mutex<ScannerService<SensorEntity>>>>,
+) -> Html<String> {
     scanner.lock().await.cancel().await;
+    let state = scanner.lock().await.state().await;
     Html(
         ScannerInnerTemplate {
-            state: scanner.lock().await.state().await,
+            sensors: state.scanned(),
+            state,
             action_type: SensorActions::Scanner,
         }
         .render()
@@ -102,7 +113,7 @@ pub async fn pair_sensor(
     Path(host): Path<String>,
 ) -> Result<Html<String>, ApiErrorResponse> {
     let host = host.replace('-', ".");
-    let sensor = Client::new().pair(&host).await.map_err(into_err)?;
+    let sensor = Client::new().pair(&host).await.map_err(into_err_sync)?;
     let conn = pool.get().await.map_err(into_err)?;
     let sensor = conn.create_sensor(sensor).await.map_err(into_err)?;
 
@@ -116,16 +127,10 @@ pub async fn pair_sensor(
     ))
 }
 
-#[derive(Template)]
-#[template(path = "components/scanner-progress-status.html")]
-pub struct ScannerProgressStatusTemplate {
-    pub progress: ScanProgress,
-}
-
 pub async fn status_ws(
     ws: WebSocketUpgrade,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
-    State(scanner): State<Arc<Mutex<ScannerService>>>,
+    State(scanner): State<Arc<Mutex<ScannerService<SensorEntity>>>>,
 ) -> impl IntoResponse {
     ws.on_upgrade(move |socket| handle_status_socket(socket, addr, scanner.clone()))
 }
@@ -133,7 +138,7 @@ pub async fn status_ws(
 async fn handle_status_socket(
     mut socket: WebSocket,
     _addr: SocketAddr,
-    scanner: Arc<Mutex<ScannerService>>,
+    scanner: Arc<Mutex<ScannerService<SensorEntity>>>,
 ) {
     // send a ping (unsupported by some browsers) just to kick things off and get a response
     if socket.send(Message::Ping(vec![1, 2, 3])).await.is_err() {
@@ -147,43 +152,24 @@ async fn handle_status_socket(
         tokio::spawn(async move {
             let mut last_msg = None;
             loop {
+                tokio::time::sleep(Duration::from_millis(650)).await;
                 let state = scanner.lock().await.state().await;
-                let msg = match &state {
-                    ScannerState::Idle(_) | ScannerState::Error(_) => {
-                        if socket
-                            .send(Message::Text(
-                                ScannerInnerTemplate {
-                                    state,
-                                    action_type: SensorActions::Scanner,
-                                }
-                                .render()
-                                .unwrap(),
-                            ))
-                            .await
-                            .is_err()
-                        {
-                            break;
-                        }
-                        let _ = socket.send(Message::Close(None)).await;
-                        return;
+                let msg = Message::Text(
+                    ScannerInnerTemplate {
+                        sensors: state.scanned(),
+                        state,
+                        action_type: SensorActions::Scanner,
                     }
-                    ScannerState::Scanning(progress) => Message::Text(
-                        ScannerProgressStatusTemplate {
-                            progress: progress.clone(),
-                        }
-                        .render()
-                        .unwrap(),
-                    ),
-                };
-                if let Some(last_msg) = &last_msg {
-                    if last_msg == &msg {
-                        continue;
-                    }
+                    .render()
+                    .unwrap(),
+                );
+                if last_msg.as_ref() == Some(&msg) {
+                    continue;
                 }
+                last_msg = Some(msg.clone());
                 if socket.send(msg.clone()).await.is_err() {
                     break;
                 }
-                last_msg = Some(msg);
             }
         })
     };
