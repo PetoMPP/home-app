@@ -152,7 +152,6 @@ async fn handle_status_socket(
         tokio::spawn(async move {
             let mut last_msg = None;
             loop {
-                tokio::time::sleep(Duration::from_millis(650)).await;
                 let state = scanner.lock().await.state().await;
                 let msg = Message::Text(
                     ScannerInnerTemplate {
@@ -163,13 +162,13 @@ async fn handle_status_socket(
                     .render()
                     .unwrap(),
                 );
-                if last_msg.as_ref() == Some(&msg) {
-                    continue;
+                if last_msg.as_ref() != Some(&msg) {
+                    last_msg = Some(msg.clone());
+                    if socket.send(msg.clone()).await.is_err() {
+                        break;
+                    }
                 }
-                last_msg = Some(msg.clone());
-                if socket.send(msg.clone()).await.is_err() {
-                    break;
-                }
+                tokio::time::sleep(Duration::from_millis(650)).await;
             }
         })
     };

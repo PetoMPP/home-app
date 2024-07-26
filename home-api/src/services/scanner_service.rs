@@ -127,11 +127,10 @@ impl<T: Scannable> ScannerService<T> {
                     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
                     scanned = T::scan(&client, &host).await;
                 }
-                let mut prg = progress.lock().await;
-                prg.progress += 1;
+                progress.lock().await.progress += 1;
                 if let Ok(Ok(mut scanned)) = scanned {
                     scanned.check(&pool).await.ok();
-                    prg.scanned.push(scanned.clone());
+                    progress.lock().await.scanned.push(scanned.clone());
                 }
             });
             handles.spawn(task);
