@@ -70,14 +70,24 @@ impl<T: Scannable> ScannerResult<T> {
     }
 }
 
-#[derive(Default)]
 pub struct ScannerService<T: Scannable> {
     pub last_result: Option<ScannerResult<T>>,
     handle: Option<JoinHandle<Result<ScannerResult<T>, String>>>,
     progress: Arc<Mutex<ScanProgress<T>>>,
+    runtime: tokio::runtime::Runtime,
 }
 
 impl<T: Scannable> ScannerService<T> {
+    pub fn new(runtime: tokio::runtime::Runtime) -> Self {
+        Self {
+            last_result: Default::default(),
+            handle: Default::default(),
+            progress: Default::default(),
+            runtime,
+        }
+    }
+
+    #[tokio::main]
     async fn scan_inner(
         progress: Arc<Mutex<ScanProgress<T>>>,
         pool: DbPool,
@@ -104,7 +114,6 @@ impl<T: Scannable> ScannerService<T> {
             let target = target.clone();
             let pool = pool.clone();
             let task = tokio::spawn(async move {
-                progress.lock().await.progress = i + 1;
                 let host = format!("{}{}", target, i);
                 let client = reqwest::Client::new();
                 const MAX_RETRIES: u32 = 3;
@@ -144,9 +153,10 @@ impl<T: Scannable> ScannerService<T> {
         self.progress = Default::default();
         let progress = self.progress.clone();
         if self.handle.is_none() {
-            self.handle = Some(tokio::spawn(async move {
-                Self::scan_inner(progress.clone(), pool).await
-            }));
+            self.handle = Some(
+                self.runtime
+                    .spawn_blocking(move || Self::scan_inner(progress.clone(), pool)),
+            );
         }
 
         self.state().await
