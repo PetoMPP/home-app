@@ -66,6 +66,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         })
     };
     // build app
+    #[allow(unused_mut)]
     let mut app = Router::new()
         // register our webapp
         .route("/", axum::routing::get(website::sensors::sensors))

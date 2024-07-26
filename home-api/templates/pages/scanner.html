@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 
 {% block content %}
-{% include "pages/scanner-inner.html" %}
+<div ws-connect="/scan/status" class="absolute"></div>
+<div id="scanner-inner"></div>
 {% endblock %}
