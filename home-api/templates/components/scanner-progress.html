@@ -1,8 +1,5 @@
-<div ws-connect="/scan/status"></div>
-<div class="flex flex-col gap-6 justify-between">
-    {% include "components/scanner-progress-status.html" %}
-    <div class="flex justify-end">
-        <a class="btn btn-error" hx-post="/scan/cancel" hx-trigger="click" hx-swap="outerHTML"
-            hx-target="#scanner-inner">Cancel</a>
-    </div>
+<div id="scanner-progress" class="w-full">
+    <progress class="progress progress-accent" value="{{progress.progress}}" max="{{progress.total}}" role="progressbar">
+    </progress>
+    <p class="text-base-content">{{progress.text()}}</p>
 </div>

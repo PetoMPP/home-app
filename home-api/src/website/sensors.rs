@@ -186,7 +186,7 @@ pub async fn update_sensor(
     let sensor = Client::new()
         .update_sensor(&host, pair_id, sensor)
         .await
-        .map_err(|e| into_edit_err(e, &headers, current_user.clone(), sensor_entity.clone()))?;
+        .map_err(|e| into_edit_err_sync(e, &headers, current_user.clone(), sensor_entity.clone()))?;
     let sensor = conn
         .update_sensor(&host, sensor)
         .await
@@ -215,8 +215,28 @@ pub async fn update_sensor(
     })
 }
 
+fn into_edit_err_sync(
+    e: impl Into<Box<dyn std::error::Error + Send + Sync>>,
+    headers: &HeaderMap,
+    current_user: Option<User>,
+    sensor: SensorEntity,
+) -> Html<String> {
+    let e = e.into().to_string();
+    into_edit_err_str(e.as_str(), headers, current_user, sensor)
+}
+
 fn into_edit_err(
     e: impl Into<Box<dyn std::error::Error>>,
+    headers: &HeaderMap,
+    current_user: Option<User>,
+    sensor: SensorEntity,
+) -> Html<String> {
+    let e = e.into().to_string();
+    into_edit_err_str(e.as_str(), headers, current_user, sensor)
+}
+
+fn into_edit_err_str(
+    e: &str,
     headers: &HeaderMap,
     current_user: Option<User>,
     sensor: SensorEntity,
@@ -224,7 +244,7 @@ fn into_edit_err(
     match is_hx_request(headers) {
         true => Html(
             SensorEditInnerTemplate {
-                alert_message: Some(e.into().to_string()),
+                alert_message: Some(e.to_string()),
                 alert_type: Some(AlertType::Warning),
                 sensor,
             }
@@ -234,7 +254,7 @@ fn into_edit_err(
         false => Html(
             SensorEditTemplate {
                 current_user,
-                alert_message: Some(e.into().to_string()),
+                alert_message: Some(e.to_string()),
                 alert_type: Some(AlertType::Warning),
                 sensor,
             }
@@ -243,7 +263,6 @@ fn into_edit_err(
         ),
     }
 }
-
 pub async fn get_sensors(
     Extension(pool): Extension<DbPool>,
 ) -> Result<Html<String>, ApiErrorResponse> {

@@ -9,18 +9,18 @@ const SENSOR_PORT: u16 = 42069;
 const PAIR_HEADER_NAME: &str = "X-Pair-Id";
 
 pub trait SensorService {
-    async fn get_sensor(&self, host: &str) -> Result<SensorEntity, Box<dyn Error>>;
-    async fn pair(&self, host: &str) -> Result<SensorEntity, Box<dyn Error>>;
+    async fn get_sensor(&self, host: &str) -> Result<Result<SensorEntity, String>, Box<dyn Error + Send + Sync>>;
+    async fn pair(&self, host: &str) -> Result<SensorEntity, Box<dyn Error + Send + Sync>>;
     async fn update_sensor(
         &self,
         host: &str,
         pair_id: &str,
         sensor: Sensor,
-    ) -> Result<Sensor, Box<dyn Error>>;
+    ) -> Result<Sensor, Box<dyn Error + Send + Sync>>;
 }
 
 impl SensorService for reqwest::Client {
-    async fn get_sensor(&self, host: &str) -> Result<SensorEntity, Box<dyn Error>> {
+    async fn get_sensor(&self, host: &str) -> Result<Result<SensorEntity, String>, Box<dyn Error + Send + Sync>> {
         let host_uri = format!("http://{}:{}/", host, SENSOR_PORT);
         let Ok(response) = self
             .get(host_uri.clone() + "sensor")
@@ -39,10 +39,10 @@ impl SensorService for reqwest::Client {
             pair_id: None,
         };
 
-        Ok(sensor_entity)
+        Ok(Ok(sensor_entity))
     }
 
-    async fn pair(&self, host: &str) -> Result<SensorEntity, Box<dyn Error>> {
+    async fn pair(&self, host: &str) -> Result<SensorEntity, Box<dyn Error + Send + Sync>> {
         let host_uri = format!("http://{}:{}/", host, SENSOR_PORT);
         let response = self
             .post(host_uri.clone() + "pair")
@@ -65,7 +65,7 @@ impl SensorService for reqwest::Client {
         if response.is_success() {
             // Wait for the sensor to reopen the socket, can be shortened probably
             tokio::time::sleep(Duration::from_secs_f32(1.0)).await;
-            let mut sensor = self.get_sensor(host).await?;
+            let mut sensor = self.get_sensor(host).await??;
             sensor.pair_id = Some(id.to_string());
             Ok(sensor)
         } else {
@@ -78,7 +78,7 @@ impl SensorService for reqwest::Client {
         host: &str,
         pair_id: &str,
         sensor: Sensor,
-    ) -> Result<Sensor, Box<dyn Error>> {
+    ) -> Result<Sensor, Box<dyn Error + Send + Sync>> {
         let host_uri = format!("http://{}:{}/", host, SENSOR_PORT);
         let sensor_dto = sensor.into();
         let response = self

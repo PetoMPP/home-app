@@ -3,18 +3,18 @@ use serde::de::DeserializeOwned;
 use std::error::Error;
 
 pub trait HttpRequest {
-    async fn send_parse<T, E>(self) -> Result<Result<T, E>, Box<dyn Error>>
+    async fn send_parse<T, E>(self) -> Result<Result<T, E>, Box<dyn Error + Send + Sync>>
     where
         T: DeserializeOwned,
         E: DeserializeOwned;
 
-    async fn send_parse_err<E>(self) -> Result<Result<StatusCode, E>, Box<dyn Error>>
+    async fn send_parse_err<E>(self) -> Result<Result<StatusCode, E>, Box<dyn Error + Send + Sync>>
     where
         E: DeserializeOwned;
 }
 
 impl HttpRequest for RequestBuilder {
-    async fn send_parse<T, E>(self) -> Result<Result<T, E>, Box<dyn Error>>
+    async fn send_parse<T, E>(self) -> Result<Result<T, E>, Box<dyn Error + Send + Sync>>
     where
         T: DeserializeOwned,
         E: DeserializeOwned,
@@ -28,7 +28,7 @@ impl HttpRequest for RequestBuilder {
         }
     }
 
-    async fn send_parse_err<E>(self) -> Result<Result<StatusCode, E>, Box<dyn Error>>
+    async fn send_parse_err<E>(self) -> Result<Result<StatusCode, E>, Box<dyn Error + Send + Sync>>
     where
         E: DeserializeOwned,
     {

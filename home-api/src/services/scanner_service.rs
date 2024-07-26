@@ -1,47 +1,61 @@
-use super::sensor_service::SensorService;
-use crate::{
-    database::{sensors::SensorDatabase, DbPool},
-    models::db::SensorEntity,
-};
+use crate::database::DbPool;
 use serde_derive::{Deserialize, Serialize};
-use std::sync::Arc;
+use std::{future::Future, sync::Arc};
 use tokio::{sync::Mutex, task::JoinHandle};
 
+pub trait Scannable: Send + Sync + Clone + Default + std::fmt::Debug + 'static {
+    type Error: Send + Sync;
+    fn scan(
+        client: &reqwest::Client,
+        host: &str,
+    ) -> impl Future<
+        Output = Result<Result<Self, Self::Error>, Box<dyn std::error::Error + Send + Sync>>,
+    > + Send;
+    fn check(
+        &mut self,
+        pool: &DbPool,
+    ) -> impl Future<Output = Result<(), Box<dyn std::error::Error + Send + Sync>>> + Send;
+}
+
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
-pub struct ScanProgress {
+pub struct ScanProgress<T: Scannable> {
     pub progress: u32,
+    pub scanned: Vec<T>,
     pub total: u32,
     pub target: String,
 }
 
-impl ScanProgress {
+impl<T: Scannable> ScanProgress<T> {
     pub fn text(&self) -> String {
         format!("Scanned {} of {} hosts", self.progress, self.total)
     }
+}
 
-    pub fn style(&self) -> String {
-        format!(
-            "--value:{};--size:16rem;--thickness:0.5rem;",
-            (self.progress as f32 / self.total as f32 * 100.0) as u32
-        )
+#[derive(Clone, Debug)]
+pub enum ScannerState<T: Scannable> {
+    Idle(Option<ScannerResult<T>>),
+    Scanning(ScanProgress<T>),
+    Error(String),
+}
+
+impl<T: Scannable> ScannerState<T> {
+    pub fn scanned(&self) -> Vec<T> {
+        match self {
+            ScannerState::Idle(Some(result)) => result.scanned.clone(),
+            ScannerState::Scanning(progress) => progress.scanned.clone(),
+            _ => vec![],
+        }
     }
 }
 
 #[derive(Clone, Debug)]
-pub enum ScannerState {
-    Idle(Option<ScannerResult>),
-    Scanning(ScanProgress),
-    Error(String),
-}
-
-#[derive(Clone, Debug)]
-pub struct ScannerResult {
-    pub sensors: Vec<SensorEntity>,
+pub struct ScannerResult<T> {
+    pub scanned: Vec<T>,
     pub created: chrono::DateTime<chrono::Utc>,
     pub duration: chrono::Duration,
 }
 
-impl ScannerResult {
+impl<T: Scannable> ScannerResult<T> {
     pub fn created_display(&self) -> String {
         self.created.format("%Y-%m-%d %H:%M:%S UTC").to_string()
     }
@@ -54,31 +68,20 @@ impl ScannerResult {
             self.duration.num_milliseconds() % 1000
         )
     }
-
-    pub async fn check_sensors(&mut self, pool: &DbPool) -> Result<(), Box<dyn std::error::Error>> {
-        for s in self.sensors.iter_mut() {
-            s.pair_id = pool
-                .get()
-                .await
-                .map_err(|e| e.to_string())?
-                .get_sensor(&s.host)
-                .await
-                .map_err(|e| e.to_string())?
-                .and_then(|s| s.pair_id);
-        }
-        Ok(())
-    }
 }
 
 #[derive(Default)]
-pub struct ScannerService {
-    pub last_result: Option<ScannerResult>,
-    handle: Option<JoinHandle<Result<ScannerResult, String>>>,
-    progress: Arc<Mutex<ScanProgress>>,
+pub struct ScannerService<T: Scannable> {
+    pub last_result: Option<ScannerResult<T>>,
+    handle: Option<JoinHandle<Result<ScannerResult<T>, String>>>,
+    progress: Arc<Mutex<ScanProgress<T>>>,
 }
 
-impl ScannerService {
-    async fn scan_inner(progress: Arc<Mutex<ScanProgress>>) -> Result<ScannerResult, String> {
+impl<T: Scannable> ScannerService<T> {
+    async fn scan_inner(
+        progress: Arc<Mutex<ScanProgress<T>>>,
+        pool: DbPool,
+    ) -> Result<ScannerResult<T>, String> {
         let started = chrono::Utc::now();
         let Some(target) = pnet::datalink::interfaces().into_iter().find_map(|n| {
             n.ips
@@ -99,37 +102,50 @@ impl ScannerService {
         for i in 0..=255 {
             let progress = progress.clone();
             let target = target.clone();
+            let pool = pool.clone();
             let task = tokio::spawn(async move {
                 progress.lock().await.progress = i + 1;
                 let host = format!("{}{}", target, i);
-                reqwest::Client::new().get_sensor(&host).await.ok()
+                let client = reqwest::Client::new();
+                const MAX_RETRIES: u32 = 3;
+                let mut retry_count = 0;
+                let mut scanned = T::scan(&client, &host).await;
+                while let Err(_) = scanned {
+                    retry_count += 1;
+                    if retry_count >= MAX_RETRIES {
+                        break;
+                    }
+                    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                    scanned = T::scan(&client, &host).await;
+                }
+                let mut prg = progress.lock().await;
+                prg.progress += 1;
+                if let Ok(Ok(mut scanned)) = scanned {
+                    scanned.check(&pool).await.ok();
+                    prg.scanned.push(scanned.clone());
+                }
             });
             handles.spawn(task);
         }
 
-        let mut sensors = vec![];
-        while let Some(sensor) = handles.join_next().await {
-            if let Some(sensor) = sensor.and_then(|r| r).map_err(|e| e.to_string())? {
-                sensors.push(sensor);
-            }
-        }
+        while let Some(_) = handles.join_next().await {}
 
         let created = chrono::Utc::now();
         let duration = created - started;
 
         Ok(ScannerResult {
-            sensors,
+            scanned: progress.lock().await.scanned.clone(),
             created,
             duration,
         })
     }
 
-    pub async fn init(&mut self) -> ScannerState {
+    pub async fn init(&mut self, pool: DbPool) -> ScannerState<T> {
         self.progress = Default::default();
         let progress = self.progress.clone();
         if self.handle.is_none() {
             self.handle = Some(tokio::spawn(async move {
-                Self::scan_inner(progress.clone()).await
+                Self::scan_inner(progress.clone(), pool).await
             }));
         }
 
@@ -143,7 +159,7 @@ impl ScannerService {
         }
     }
 
-    pub async fn state(&mut self) -> ScannerState {
+    pub async fn state(&mut self) -> ScannerState<T> {
         let Some(handle) = &mut self.handle else {
             return ScannerState::Idle(self.last_result.clone());
         };
