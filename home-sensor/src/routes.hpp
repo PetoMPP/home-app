@@ -5,3 +5,4 @@
 #include "routes/sensor.hpp"
 #include "routes/pair.hpp"
 #include "routes/dht.hpp"
+#include "routes/led.hpp"
