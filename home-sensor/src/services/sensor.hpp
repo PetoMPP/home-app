@@ -24,7 +24,7 @@ public:
 
     void save_store()
     {
-        store->save(prefs, DATA_STORE_SIZE, "data");
+        store->save(prefs, "data");
     }
 
     void init() override

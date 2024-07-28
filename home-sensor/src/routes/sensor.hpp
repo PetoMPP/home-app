@@ -80,6 +80,7 @@ public:
 
         SensorStore *store = data_service->store;
         store->load_json(json, true);
+        store->init_json();
         data_service->save_store();
         JsonDocument response;
         response["result"] = "ok";

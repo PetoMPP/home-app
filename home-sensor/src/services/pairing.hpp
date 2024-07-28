@@ -4,7 +4,7 @@
 #include <UUID.h>
 #include "service.hpp"
 #include "../stores/pair.hpp"
-#include "../http.h"
+#include "../http.hpp"
 
 #define PAIR_BUTTON_PIN 2
 #define RNG_PIN 3 // disconnected pin
@@ -80,7 +80,7 @@ public:
         strcpy(store->keys[store->count], key);
         store->count++;
         store->as_json();
-        store->save(prefs, PAIR_STORE_SIZE, "pair");
+        store->save(prefs, "pair");
         return true;
     }
 
@@ -91,5 +91,6 @@ public:
         randomSeed(analogRead(RNG_PIN));
         next_id.seed(random());
         store = new PairStore(prefs, PAIR_STORE_SIZE, "pair");
+        store->init_json();
     }
 };

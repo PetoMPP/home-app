@@ -32,6 +32,10 @@ struct Request* parse_request(uint8_t* req_buff, int len) {
   for (int i = 0; i < len; i++) {
     buff[i] = req_buff[i];
   }
+  delete[] curr_req.method;
+  delete[] curr_req.route;
+  delete[] curr_req.headers;
+  delete[] curr_req.body;
   curr_req = { new char[5], new char[64], new char[512], new char[1024] };
   const char* start = buff;
   // first line `GET / HTTP/1.1`
