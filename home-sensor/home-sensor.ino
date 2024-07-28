@@ -36,7 +36,27 @@ void setup()
 
 void loop()
 {
-  dht_service->handle();
-  pairing_service->handle();
-  server_service->handle();
+  ulong led_elapsed = led_service->handle();
+  ulong dht_elapsed = dht_service->handle();
+  ulong pairing_elapsed = pairing_service->handle();
+  ulong wifi_elapsed = wifi_service->handle();
+  ulong server_elapsed = server_service->handle();
+  ulong elapsed = led_elapsed + dht_elapsed + pairing_elapsed + wifi_elapsed + server_elapsed;
+  if (elapsed <= 10)
+  {
+    return;
+  }
+  Serial.println("Long loop time detected:");
+  Serial.print("LED: ");
+  Serial.println(led_elapsed);
+  Serial.print("DHT: ");
+  Serial.println(dht_elapsed);
+  Serial.print("Pairing: ");
+  Serial.println(pairing_elapsed);
+  Serial.print("WiFi: ");
+  Serial.println(wifi_elapsed);
+  Serial.print("Server: ");
+  Serial.println(server_elapsed);
+  Serial.print("Total: ");
+  Serial.println(elapsed);
 }

@@ -11,6 +11,10 @@ class SensorService : public ServiceBase
 private:
     Preferences *prefs;
     SensorStore *store;
+protected:
+    void handle_inner(ulong* start_ms) override
+    {
+    }
 
 public:
     SensorService(Preferences *p)
@@ -31,10 +35,6 @@ public:
     }
 
     void init() override
-    {
-    }
-
-    void handle() override
     {
     }
 };

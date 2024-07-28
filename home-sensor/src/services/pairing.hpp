@@ -16,11 +16,31 @@ class PairingService : public ServiceBase
 private:
     Preferences *prefs;
     int last_button_state;
-    ulong next_pairing_expiration = 0;
+    time_t next_pairing_expiration = 0;
     PairStore *temp_pair_store = new PairStore();
     UUID next_id;
     PairStore *store;
 
+protected:
+    void handle_inner(ulong* start_ms) override
+    {
+        int button_state = digitalRead(PAIR_BUTTON_PIN);
+        bool just_released = button_state != last_button_state && button_state == LOW;
+        if (just_released)
+        {
+            Serial.println("Click!");
+            next_pairing_expiration = *start_ms + PAIR_TIMEOUT_MS;
+            pairing = true;
+        }
+
+        if (pairing && next_pairing_expiration <= *start_ms)
+        {
+            pairing = false;
+            temp_pair_store = new PairStore();
+        }
+
+        last_button_state = button_state;
+    }
 public:
     inline static const char *ERROR_MESSAGE = "To connect use /pair endpoint and pairing button on the device.";
 
@@ -79,25 +99,5 @@ public:
         last_button_state = digitalRead(PAIR_BUTTON_PIN);
         randomSeed(analogRead(RNG_PIN));
         next_id.seed(random());
-    }
-
-    void handle() override
-    {
-        int button_state = digitalRead(PAIR_BUTTON_PIN);
-        bool just_released = button_state != last_button_state && button_state == LOW;
-        if (just_released)
-        {
-            Serial.println("Click!");
-            next_pairing_expiration = millis() + PAIR_TIMEOUT_MS;
-            pairing = true;
-        }
-
-        if (pairing && next_pairing_expiration <= millis())
-        {
-            pairing = false;
-            temp_pair_store = new PairStore();
-        }
-
-        last_button_state = button_state;
     }
 };

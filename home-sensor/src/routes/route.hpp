@@ -7,13 +7,18 @@ class Route
 protected:
     const char* route;
     const char* method;
+    bool strict;
 public:
-    Route(const char* r, const char* m) {
+    Route(const char* r, const char* m, bool s = true) {
         route = r;
         method = m;
+        strict = s;
     }
     virtual bool match(Request* req) {
-        return strcmp(req->method, method) == 0 && strcmp(req->route, route) == 0;
+        if (strict) {
+            return strcmp(req->method, method) == 0 && strcmp(req->route, route) == 0;
+        }
+        return strcmp(req->method, method) == 0 && strncmp(req->route, route, strlen(route)) == 0;
     }
     virtual void write_response(NetworkClient *client, Request *req) = 0;
 };
