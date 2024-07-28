@@ -31,6 +31,7 @@ void setup()
   configTime(0, 0, "pool.ntp.org", "time.nist.gov");
   server_service->init();
   pairing_service->init();
+  sensor_service->init();
   led_service->set(LOW);
 }
 
