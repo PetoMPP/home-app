@@ -42,6 +42,11 @@ private:
         printWifiStatus();
     }
 
+protected:
+    void handle_inner(ulong *start_ms) override
+    {
+    }
+
 public:
     WifiService(char ssid[], char pass[])
     {
@@ -51,8 +56,5 @@ public:
     void init() override
     {
         connect();
-    }
-    void handle() override
-    {
     }
 };

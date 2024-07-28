@@ -8,31 +8,24 @@
 
 #define REQ_BUFF_LEN 2048
 
-class ServerService : ServiceBase
+class ServerService : public ServiceBase
 {
 private:
     WiFiServer server;
     std::vector<Route *> routes;
     uint8_t *req_buff = new uint8_t[REQ_BUFF_LEN];
+    char *last_state = "";
+    char *handle_server()
+    {
+        if (!server)
+            return "Not listening";
 
-public:
-    ServerService(std::vector<Route *> all_routes)
-    {
-        server = WiFiServer(42069);
-        this->routes = all_routes;
-    }
-    void init() override
-    {
-        server.begin();
-    }
-    void handle() override
-    {
         if (!server.hasClient())
-            return;
+            return "No client";
 
         NetworkClient client = server.accept();
         if (!client)
-            return;
+            return "No client accepted";
 
         int len = client.read(req_buff, REQ_BUFF_LEN);
         Request *req = parse_request(req_buff, len);
@@ -57,5 +50,30 @@ public:
 
         client.flush();
         client.stop();
+        return "OK";
+    }
+
+protected:
+    void handle_inner(ulong *start_ms) override
+    {
+        char *state = handle_server();
+        if (strcmp(state, last_state) != 0)
+        {
+            Serial.print("Server state: ");
+            Serial.println(state);
+            last_state = state;
+        }
+    }
+
+public:
+    ServerService(std::vector<Route *> all_routes)
+    {
+        server = WiFiServer(42069);
+        this->routes = all_routes;
+    }
+
+    void init() override
+    {
+        server.begin();
     }
 };

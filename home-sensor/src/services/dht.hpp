@@ -7,7 +7,7 @@
 #define DHTPIN 5
 #define DHTTYPE DHT11
 #define DHT_MEASUREMENT_TIMEOUT_S 15 * 60
-#define DHT_SAVE_TIMEOUT_S 2 * 60 * 60
+#define DHT_SAVE_TIMEOUT_MS 2 * 60 * 60 * 1000
 #define DHT_STORAGE_ENTRIES 150
 
 struct DhtMeasurement
@@ -24,7 +24,7 @@ class DhtService : public ServiceBase
 private:
     DHT *dht;
     Preferences *prefs;
-    time_t next_save;
+    ulong next_save;
     void handle_measurement()
     {
         time_t now;
@@ -39,7 +39,6 @@ private:
         {
             return;
         }
-        time(&now);
         DhtMeasurement m = {now, h, t};
         Serial.print(F("Time: "));
         Serial.print(now);
@@ -56,23 +55,13 @@ private:
         }
         measurements[last_measurement_idx] = m;
     }
-
-public:
-    size_t last_measurement_idx;
-    DhtService(Preferences *p)
+    void handle_save(ulong* start_ms, bool force = false)
     {
-        prefs = p;
-    }
-    DhtMeasurement measurements[DHT_STORAGE_ENTRIES];
-    void handle_save(bool force = false)
-    {
-        time_t now;
-        time(&now);
-        if (!force && now < next_save)
+        if (!force && *start_ms < next_save)
         {
             return;
         }
-        next_save = now + DHT_SAVE_TIMEOUT_S;
+        next_save = *start_ms + DHT_SAVE_TIMEOUT_MS;
         char *readings = new char[DHT_STORAGE_SIZE];
         readings[0] = last_measurement_idx;
         memcpy(readings + 1, measurements, DHT_STORAGE_ENTRIES * sizeof(DhtMeasurement));
@@ -81,6 +70,21 @@ public:
         prefs->end();
         Serial.println("Saved readings!");
     }
+
+protected:
+    void handle_inner(ulong* start_ms) override
+    {
+        handle_measurement();
+        handle_save(start_ms);
+    }
+
+public:
+    size_t last_measurement_idx;
+    DhtService(Preferences *p)
+    {
+        prefs = p;
+    }
+    DhtMeasurement measurements[DHT_STORAGE_ENTRIES];
     void init() override
     {
         dht = new DHT(DHTPIN, DHTTYPE);
@@ -96,13 +100,6 @@ public:
         }
         last_measurement_idx = (size_t)readings[0];
         memcpy(measurements, readings + 1, DHT_STORAGE_ENTRIES * sizeof(DhtMeasurement));
-        time_t now;
-        time(&now);
-        next_save = now + DHT_SAVE_TIMEOUT_S;
-    }
-    void handle() override
-    {
-        handle_measurement();
-        handle_save();
+        next_save = millis() + DHT_SAVE_TIMEOUT_MS;
     }
 };
