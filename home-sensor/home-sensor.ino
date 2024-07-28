@@ -16,7 +16,7 @@ std::vector<Route *> all_routes = {
     new PairRoute(pairing_service),
     new PairConfirmRoute(pairing_service),
     new DhtRoute(dht_service, pairing_service),
-    new NotFoundRoute(),
+    new LedRoute(led_service, pairing_service),
 };
 
 ServerService *server_service = new ServerService(all_routes);
