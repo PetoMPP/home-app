@@ -1,7 +1,7 @@
 #pragma once
 
 #include <WiFi.h>
-#include "../http.h"
+#include "../http.hpp"
 #include "../routes.hpp"
 #include "pairing.hpp"
 #include "sensor.hpp"
@@ -13,6 +13,7 @@ class ServerService : public ServiceBase
 private:
     WiFiServer server;
     std::vector<Route *> routes;
+    Route *not_found_route = new NotFoundRoute();
     uint8_t *req_buff = new uint8_t[REQ_BUFF_LEN];
     char *last_state = "";
     char *handle_server()
@@ -36,7 +37,7 @@ private:
         }
         else
         {
-            Route *route = new NotFoundRoute();
+            Route *route = not_found_route;
             for (Route *r : routes)
             {
                 if (r->match(req))

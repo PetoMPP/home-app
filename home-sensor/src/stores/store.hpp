@@ -5,23 +5,25 @@
 
 class Store
 {
-    protected:
+protected:
+    char *buff;
     JsonDocument doc;
+
 public:
     int len; // Valid directly after load/save operations
     int max_size;
     Store() {}
     Store(Preferences *preferences, int max_size, const char *store_name)
     {
+        buff = new char[max_size];
         this->max_size = max_size;
-        char *buff = new char[max_size];
         preferences->begin(store_name);
         len = preferences->getString("store", buff, max_size);
         preferences->end();
         DeserializationError err = deserializeJson(doc, buff, len);
     }
     virtual void init_json() = 0;
-    virtual JsonDocument* as_json() = 0;
+    virtual JsonDocument *as_json() = 0;
     virtual void load_json(JsonDocument src_doc, bool merge = false)
     {
         if (!merge)
@@ -40,9 +42,8 @@ public:
             ++iter;
         }
     }
-    void save(Preferences *preferences, int max_size, const char *store_name)
+    void save(Preferences *preferences, const char *store_name)
     {
-        char *buff = new char[max_size];
         len = serializeJson(doc, buff, max_size);
         buff[len] = '\0';
         preferences->begin(store_name);
