@@ -10,23 +10,16 @@ class SensorService : public ServiceBase
 {
 private:
     Preferences *prefs;
-    SensorStore *store;
 protected:
     void handle_inner(ulong* start_ms) override
     {
     }
 
 public:
+    SensorStore *store;
     SensorService(Preferences *p)
     {
         prefs = p;
-    }
-
-    SensorStore *get_store()
-    {
-        store = new SensorStore(prefs, DATA_STORE_SIZE, "data");
-        store->init_json();
-        return store;
     }
 
     void save_store()
@@ -36,5 +29,7 @@ public:
 
     void init() override
     {
+        store = new SensorStore(prefs, DATA_STORE_SIZE, "data");
+        store->init_json();
     }
 };

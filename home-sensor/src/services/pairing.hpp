@@ -19,7 +19,6 @@ private:
     time_t next_pairing_expiration = 0;
     PairStore *temp_pair_store = new PairStore();
     UUID next_id;
-    PairStore *store;
 
 protected:
     void handle_inner(ulong* start_ms) override
@@ -42,6 +41,7 @@ protected:
         last_button_state = button_state;
     }
 public:
+    PairStore *store;
     inline static const char *ERROR_MESSAGE = "To connect use /pair endpoint and pairing button on the device.";
 
     bool pairing = false;
@@ -50,19 +50,11 @@ public:
         this->prefs = prefs;
     }
 
-    PairStore *get_store()
-    {
-        store = new PairStore(prefs, PAIR_STORE_SIZE, "pair");
-        store->init_json();
-        return store;
-    }
-
     bool is_paired(Request *req)
     {
-        PairStore *pair_store = get_store();
         char pk[64] = {0};
         get_header_value(req, "X-Pair-Id", pk);
-        return pk != NULL && pair_store->has_key(pk);
+        return pk != NULL && store->has_key(pk);
     }
 
     const char *generate()
@@ -84,12 +76,11 @@ public:
             return false;
         }
 
-        PairStore *pair_store = get_store();
-        pair_store->keys[pair_store->count] = new char[64];
-        strcpy(pair_store->keys[pair_store->count], key);
-        pair_store->count++;
-        pair_store->as_json();
-        pair_store->save(prefs, PAIR_STORE_SIZE, "pair");
+        store->keys[store->count] = new char[64];
+        strcpy(store->keys[store->count], key);
+        store->count++;
+        store->as_json();
+        store->save(prefs, PAIR_STORE_SIZE, "pair");
         return true;
     }
 
@@ -99,5 +90,6 @@ public:
         last_button_state = digitalRead(PAIR_BUTTON_PIN);
         randomSeed(analogRead(RNG_PIN));
         next_id.seed(random());
+        store = new PairStore(prefs, PAIR_STORE_SIZE, "pair");
     }
 };

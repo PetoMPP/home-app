@@ -19,7 +19,6 @@ public:
     void write_response(NetworkClient *client, Request *req) override
     {
         bool is_full = strcmp(req->route, "/sensor/full") == 0;
-        PairStore *pair_store = pairing_service->get_store();
         if (is_full && !pairing_service->is_paired(req))
         {
             JsonDocument json;
@@ -28,12 +27,13 @@ public:
             return;
         }
 
-        SensorStore *data_store = data_service->get_store();
+        SensorStore *data_store = data_service->store;
         JsonDocument json;
         json = JsonDocument(*data_store->as_json());
         json["pairing"] = pairing_service->pairing;
         if (is_full)
         {
+            PairStore *pair_store = pairing_service->store;
             json["paired_keys"] = pair_store->count;
             JsonDocument jobj;
             JsonObject usage = jobj.to<JsonObject>();
@@ -78,7 +78,7 @@ public:
             return;
         }
 
-        SensorStore *store = data_service->get_store();
+        SensorStore *store = data_service->store;
         store->load_json(json, true);
         data_service->save_store();
         JsonDocument response;
