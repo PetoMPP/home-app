@@ -14,7 +14,7 @@ private:
     WiFiServer server;
     std::vector<Route *> routes;
     Route *not_found_route = new NotFoundRoute();
-    uint8_t *req_buff = new uint8_t[REQ_BUFF_LEN];
+    char *req_buff = new char[REQ_BUFF_LEN];
     char *last_state = "";
     char *handle_server()
     {
@@ -28,7 +28,7 @@ private:
         if (!client)
             return "No client accepted";
 
-        int len = client.read(req_buff, REQ_BUFF_LEN);
+        int len = client.read((uint8_t*)req_buff, REQ_BUFF_LEN);
         Request *req = parse_request(req_buff, len);
         if (req == NULL)
         {
