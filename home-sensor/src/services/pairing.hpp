@@ -35,7 +35,7 @@ protected:
         if (pairing && next_pairing_expiration <= *start_ms)
         {
             pairing = false;
-            temp_pair_store = new PairStore();
+            temp_pair_store->count = 0;
         }
 
         last_button_state = button_state;
@@ -61,8 +61,12 @@ public:
     {
         next_id.generate();
         const char *id = next_id.toCharArray();
-        temp_pair_store->keys[temp_pair_store->count] = new char[64];
-        strcpy(temp_pair_store->keys[temp_pair_store->count], id);
+        char *next_temp_id = temp_pair_store->keys[temp_pair_store->count];
+        if (next_temp_id == NULL)
+        {
+            next_temp_id = new char[64];
+        }
+        strcpy(next_temp_id, id);
         temp_pair_store->count++;
         return id;
     }
@@ -76,8 +80,12 @@ public:
             return false;
         }
 
-        store->keys[store->count] = new char[64];
-        strcpy(store->keys[store->count], key);
+        char *next_key = store->keys[store->count];
+        if (next_key == NULL)
+        {
+            next_key = new char[64];
+        }
+        strcpy(next_key, key);
         store->count++;
         store->as_json();
         store->save(prefs, "pair");

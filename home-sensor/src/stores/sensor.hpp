@@ -17,19 +17,24 @@ public:
         const char *n = doc["name"];
         if (n != NULL)
         {
-            name = new char[64];
             strcpy(name, n);
         }
         const char *l = doc["location"];
         if (l != NULL)
         {
-            location = new char[64];
             strcpy(location, l);
         }
 
         if (doc.containsKey("features"))
         {
-            features = new uint32_t(doc["features"]);
+            if (features == NULL)
+            {
+                features = new uint32_t(doc["features"]);
+            }
+            else
+            {
+                *features = doc["features"];
+            }
         }
     }
     JsonDocument *as_json() override

@@ -14,8 +14,9 @@ public:
 
     bool has_key(char *key)
     {
-        for (char *k : keys)
+        for (size_t i = 0; i < count; i++)
         {
+            char *k = keys[i];
             if (k != NULL && strcmp(k, key) == 0)
             {
                 return true;
