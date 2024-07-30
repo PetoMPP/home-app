@@ -2,13 +2,15 @@
 
 #include "../http.hpp"
 
+#define RESPONSE_BODY_LEN 16 * 1024
+
 class Route
 {
 protected:
     const char *route;
     const char *method;
     bool strict;
-    char *json_str = new char[1024];
+    char *json_str = new char[RESPONSE_BODY_LEN];
 
 public:
     Route(const char *r, const char *m, bool s = true)
@@ -29,7 +31,7 @@ public:
     void write_json(NetworkClient *client, JsonDocument *json_ptr, Status status = sOK)
     {
         JsonDocument json = JsonDocument(*json_ptr);
-        int json_len = serializeJsonPretty(json, json_str, 1024);
+        int json_len = serializeJsonPretty(json, json_str, RESPONSE_BODY_LEN);
         client->println(get_status_header(status));
         client->println("Content-Type: application/json");
         client->printf("Content-Length: %d\r\n", json_len);
