@@ -67,6 +67,14 @@ pub mod json {
         pub location: String,
         pub features: u32,
         pub pairing: bool,
+    }
+
+    #[derive(Debug, Default, Serialize, Deserialize, Clone)]
+    pub struct SensorFullResponse {
+        pub name: String,
+        pub location: String,
+        pub features: u32,
+        pub pairing: bool,
         pub paired_keys: u32,
         pub usage: StoreUsage,
     }
