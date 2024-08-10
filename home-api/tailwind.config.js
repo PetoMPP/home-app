@@ -19,12 +19,12 @@ module.exports = {
         nord: {
           ...require("daisyui/src/theming/themes")["nord"],
         },
-        dark: {
-          ...require("daisyui/src/theming/themes")["dark"],
+        business: {
+          ...require("daisyui/src/theming/themes")["business"],
         },
       }
     ],
-    darkTheme: "dark",
+    darkTheme: "business",
   },
 }
 

@@ -3,14 +3,32 @@
         <h2 class="text-2xl font-semibold pb-4">Menu</h2>
         {% match current_user %}
         {% when Some with (curr) %}
-        <li><a class="bg-neutral text-neutral-content" hx-get="/" hx-push-url="true" hx-target="#page-content"
-                        hx-swap="innerHtml">Overview</a>
+        <li>
+                <a hx-get="/" hx-push-url="true" hx-target="#page-content" hx-swap="innerHtml">Overview</a>
+                <ul>
+                        <!-- List of paired sensors with minimal data, with all areas and options to assign -->
+                        <li><a>Sensors</a></li>
+                        <!-- List of created user areas with some data -->
+                        <li><a>Areas</a></li>
+                        <!-- Links added by user from Layout management -->
+                        <!-- <li><a>Custom</a> -->
+                </ul>
         </li>
-        <li><a class="bg-neutral text-neutral-content" hx-get="/scanner" hx-push-url="true" hx-target="#page-content"
-                        hx-swap="innerHtml">Scanner</a>
+        <li>
+                <h2 class="menu-title">Management</h2>
+                <ul>
+                        <!-- Different list of sensors with edit and features -->
+                        <li><a>Sensor management</a></li>
+                        <li>
+                                <a hx-get="/scanner" hx-push-url="true" hx-target="#page-content"
+                                        hx-swap="innerHtml">Sensor scanner</a>
+                        </li>
+                        <!-- Allows users to position areas and sensors within -->
+                        <li><a>Layout management</a></li>
+                        <li><a>Data management</a></li>
+                </ul>
         </li>
-        <li><a class="bg-warning text-warning-content" hx-post="/logout" hx-push-url="true">Logout</a>
-        </li>
+        <li><a class="bg-warning text-warning-content" hx-post="/logout" hx-push-url="true">Logout</a></li>
         {% when None %}
         <li><a class="bg-primary text-primary-content" hx-get="/login" hx-push-url="true" hx-target="closest body"
                         hx-swap="innerHtml">Login</a>
