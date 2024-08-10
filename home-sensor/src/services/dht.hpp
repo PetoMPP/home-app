@@ -79,7 +79,7 @@ protected:
     }
 
 public:
-    size_t last_measurement_idx;
+    size_t last_measurement_idx = 0;
     DhtService(Preferences *p)
     {
         prefs = p;
@@ -93,6 +93,7 @@ public:
         char *readings = new char[DHT_STORAGE_SIZE];
         size_t len = prefs->getBytes("bytes", readings, DHT_STORAGE_SIZE);
         prefs->end();
+        next_save = millis() + DHT_SAVE_TIMEOUT_MS;
         if (len == 0)
         {
             Serial.println("No readings found!");
@@ -100,6 +101,5 @@ public:
         }
         last_measurement_idx = (size_t)readings[0];
         memcpy(measurements, readings + 1, DHT_STORAGE_ENTRIES * sizeof(DhtMeasurement));
-        next_save = millis() + DHT_SAVE_TIMEOUT_MS;
     }
 };

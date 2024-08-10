@@ -61,12 +61,11 @@ public:
     {
         next_id.generate();
         const char *id = next_id.toCharArray();
-        char *next_temp_id = temp_pair_store->keys[temp_pair_store->count];
-        if (next_temp_id == NULL)
+        if (temp_pair_store->keys[temp_pair_store->count] == NULL)
         {
-            next_temp_id = new char[64];
+            temp_pair_store->keys[temp_pair_store->count] = new char[64];
         }
-        strcpy(next_temp_id, id);
+        strcpy(temp_pair_store->keys[temp_pair_store->count], id);
         temp_pair_store->count++;
         return id;
     }
@@ -80,12 +79,11 @@ public:
             return false;
         }
 
-        char *next_key = store->keys[store->count];
-        if (next_key == NULL)
+        if (store->keys[store->count] == NULL)
         {
-            next_key = new char[64];
+            store->keys[store->count] = new char[64];
         }
-        strcpy(next_key, key);
+        strcpy(store->keys[store->count], key);
         store->count++;
         store->as_json();
         store->save(prefs, "pair");
