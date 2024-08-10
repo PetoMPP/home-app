@@ -52,7 +52,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         conn.ensure_admin().await?;
     }
     // create services
-    let mut scanner = ScannerService::new(tokio::runtime::Builder::new_current_thread().enable_all().build()?);
+    let mut scanner = ScannerService::new(
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()?,
+    );
     scanner.init(pool.clone()).await;
     let scanner = Mutex::new(scanner);
     let scanner = Arc::new(scanner);
@@ -69,8 +73,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     #[allow(unused_mut)]
     let mut app = Router::new()
         // register our webapp
-        .route("/", axum::routing::get(website::sensors::sensors))
-        .route("/sensors", get(website::sensors::get_sensors))
+        .route("/", get(website::home::home))
+        .route("/sensors", get(website::sensors::sensors))
         .route("/sensors/:host", delete(website::sensors::delete_sensor))
         .route("/sensors/:host/edit", get(website::sensors::edit_sensor))
         .route("/sensors/:host", post(website::sensors::update_sensor))

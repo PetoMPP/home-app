@@ -23,4 +23,5 @@
     </label>
     <button hx-preserve id="sensor-edit-submit" class="btn btn-primary" hx-post="/sensors/{{sensor.host}}" hx-target="#page-content"
         data-loading-class="btn-disabled" hx-target-error="#page-content">Save</button>
+    <a class="btn" onclick="history.back();">Back</a>
 </form>

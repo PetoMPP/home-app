@@ -1,15 +1,6 @@
 <h1 class="text-2xl pb-4">Sensors overview</h1>
 <div class="flex flex-row gap-6 align-center justify-between">
     <p class="text-xl">Here are the sensors available:</p>
-    <a class="btn btn-primary" hx-get="/sensors" hx-trigger="click" hx-target="#sensor-table-body"
-        hx-on::before-request="clear_rows(this)" data-loading-class="btn-disabled">Refresh</a>
+    <a class="btn btn-primary" hx-get="/sensors" hx-trigger="click" hx-target="#page-content" data-loading-class="btn-disabled">Refresh</a>
 </div>
-<script>
-    function clear_rows(el) {
-        var children = document.getElementById('sensor-table-body').children;
-        for (var i = children.length - 1; i > 0; i--) {
-            children[i].remove();
-        }
-    }
-</script>
 {% include "components/sensor-table.html" %}
