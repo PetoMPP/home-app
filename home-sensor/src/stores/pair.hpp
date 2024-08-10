@@ -5,7 +5,7 @@
 class PairStore : public Store
 {
 public:
-    char *keys[64] = {""};
+    char *keys[64] = {new char[64]};
     int count = 0;
     PairStore() {}
     PairStore(Preferences *preferences, int max_size, const char *store_name) : Store(preferences, max_size, store_name)
