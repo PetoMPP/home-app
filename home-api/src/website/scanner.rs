@@ -34,8 +34,16 @@ pub struct ScannerTemplate {
 }
 
 #[derive(Template)]
-#[template(path = "pages/scanner-inner.html")]
-pub struct ScannerInnerTemplate {
+#[template(path = "pages/scanner-ws.html")]
+pub struct ScannerWsTemplate {
+    pub state: ScannerState<SensorEntity>,
+    pub action_type: SensorActions,
+    pub sensors: Vec<SensorEntity>,
+}
+
+#[derive(Template)]
+#[template(path = "pages/scanner-content.html")]
+pub struct ScannerContentTemplate {
     pub state: ScannerState<SensorEntity>,
     pub action_type: SensorActions,
     pub sensors: Vec<SensorEntity>,
@@ -55,7 +63,7 @@ pub async fn scanner(
     let sensors = state.scanned();
     Ok(match is_hx_request(&headers) {
         true => Html(
-            ScannerInnerTemplate {
+            ScannerWsTemplate {
                 state,
                 action_type: SensorActions::Scanner,
                 sensors,
@@ -82,7 +90,7 @@ pub async fn scan(
 ) -> Html<String> {
     let state = scanner.lock().await.init(pool).await;
     Html(
-        ScannerInnerTemplate {
+        ScannerContentTemplate {
             sensors: state.scanned(),
             state,
             action_type: SensorActions::Scanner,
@@ -98,7 +106,7 @@ pub async fn cancel(
     scanner.lock().await.cancel().await;
     let state = scanner.lock().await.state().await;
     Html(
-        ScannerInnerTemplate {
+        ScannerContentTemplate {
             sensors: state.scanned(),
             state,
             action_type: SensorActions::Scanner,
@@ -154,7 +162,7 @@ async fn handle_status_socket(
             loop {
                 let state = scanner.lock().await.state().await;
                 let msg = Message::Text(
-                    ScannerInnerTemplate {
+                    ScannerContentTemplate {
                         sensors: state.scanned(),
                         state,
                         action_type: SensorActions::Scanner,
