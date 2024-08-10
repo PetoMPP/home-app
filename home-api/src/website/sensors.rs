@@ -263,21 +263,6 @@ fn into_edit_err_str(
         ),
     }
 }
-pub async fn get_sensors(
-    Extension(pool): Extension<DbPool>,
-) -> Result<Html<String>, ApiErrorResponse> {
-    let conn = pool.get().await.map_err(into_err)?;
-    let sensors = conn.get_sensors().await.map_err(into_err)?;
-
-    Ok(Html(
-        SensorRowsTemplate {
-            sensors,
-            action_type: SensorActions::Overview,
-        }
-        .render()
-        .unwrap(),
-    ))
-}
 
 pub async fn delete_sensor(
     headers: HeaderMap,

@@ -12,6 +12,7 @@ use axum::{
 };
 
 pub mod components;
+pub mod home;
 pub mod login;
 pub mod scanner;
 pub mod sensors;

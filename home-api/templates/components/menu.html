@@ -1,5 +1,5 @@
 <ul class="menu p-4 lg:w-80 w-60 min-h-full bg-base-200 z-10 gap-2"
-        hx-on::after-request="document.getElementById('menu-drawer').click()">
+        hx-on::before-request="document.getElementById('menu-drawer').click()">
         <h2 class="text-2xl font-semibold pb-4">Menu</h2>
         {% match current_user %}
         {% when Some with (curr) %}
@@ -7,7 +7,7 @@
                 <a hx-get="/" hx-push-url="true" hx-target="#page-content" hx-swap="innerHtml">Overview</a>
                 <ul>
                         <!-- List of paired sensors with minimal data, with all areas and options to assign -->
-                        <li><a>Sensors</a></li>
+                        <li><a hx-get="/sensors" hx-push-url="true" hx-target="#page-content" hx-swap="innerHtml">Sensors</a></li>
                         <!-- List of created user areas with some data -->
                         <li><a>Areas</a></li>
                         <!-- Links added by user from Layout management -->
