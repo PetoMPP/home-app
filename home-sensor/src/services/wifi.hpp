@@ -29,6 +29,7 @@ private:
         Serial.println(ssid);
 
         WiFi.useStaticBuffers(true);
+        WiFi.setSleep(false);
         WiFi.mode(WIFI_STA);
         WiFi.begin(ssid, pass);
         while (WiFi.status() != WL_CONNECTED)
