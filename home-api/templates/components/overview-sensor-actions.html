@@ -1,4 +1,4 @@
-<a hx-get="/sensors/{{host}}/edit" class="btn btn-sm btn-secondary" hx-target="#page-content" hx-push-url="true">Edit</a>
+<a hx-get="/sensors/{{host}}/edit" class="btn btn-sm btn-primary" hx-target="#page-content"
+    hx-push-url="true">Edit</a>
 <a hx-delete="/sensors/{{host}}" class="btn btn-sm btn-error" data-loading-class="btn-disabled"
-    hx-target="#sensor-table-body" hx-target-error="#sensor-rows-error-{{host}}"
-    hx-on::before-send="document.getElementById('sensor-rows-error-{{host}}').textContent = ''">Delete</a>
+    hx-target="#page-content">Delete</a>

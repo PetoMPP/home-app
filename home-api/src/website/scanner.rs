@@ -1,13 +1,15 @@
-use super::{is_hx_request, sensors::SensorActions};
+use super::{
+    is_hx_request,
+    sensors::{SensorActions, SensorTemplate},
+};
 use crate::{
     database::{sensors::SensorDatabase, DbPool},
-    into_err, into_err_sync,
+    into_api_err,
     models::{auth::Token, db::SensorEntity, User},
     services::{
         scanner_service::{ScannerService, ScannerState},
         sensor_service::SensorService,
     },
-    website::sensors::SensorRowTemplate,
     ApiErrorResponse,
 };
 use askama::Template;
@@ -20,7 +22,7 @@ use axum::{
     response::{Html, IntoResponse},
     Extension,
 };
-use reqwest::Client;
+use reqwest::{Client, StatusCode};
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tokio::sync::Mutex;
 
@@ -55,10 +57,11 @@ pub async fn scanner(
     token: Option<Token>,
     headers: HeaderMap,
 ) -> Result<Html<String>, ApiErrorResponse> {
-    let conn = pool.get().await.map_err(into_err)?;
-    let current_user = Token::get_valid_user(token, &conn)
-        .await
-        .map_err(into_err)?;
+    let conn = into_api_err(pool.get().await, StatusCode::INTERNAL_SERVER_ERROR)?;
+    let current_user = into_api_err(
+        Token::get_valid_user(token, &conn).await,
+        StatusCode::INTERNAL_SERVER_ERROR,
+    )?;
     let state = scanner.lock().await.state().await;
     let sensors = state.scanned();
     Ok(match is_hx_request(&headers) {
@@ -117,16 +120,18 @@ pub async fn cancel(
 }
 
 pub async fn pair_sensor(
-    Extension(pool): Extension<DbPool>,
     Path(host): Path<String>,
+    Extension(pool): Extension<DbPool>,
 ) -> Result<Html<String>, ApiErrorResponse> {
     let host = host.replace('-', ".");
-    let sensor = Client::new().pair(&host).await.map_err(into_err_sync)?;
-    let conn = pool.get().await.map_err(into_err)?;
-    let sensor = conn.create_sensor(sensor).await.map_err(into_err)?;
-
+    let sensor = into_api_err(Client::new().pair(&host).await, StatusCode::UNAUTHORIZED)?;
+    let conn = into_api_err(pool.get().await, StatusCode::INTERNAL_SERVER_ERROR)?;
+    let sensor = into_api_err(
+        conn.create_sensor(sensor).await,
+        StatusCode::INTERNAL_SERVER_ERROR,
+    )?;
     Ok(Html(
-        SensorRowTemplate {
+        SensorTemplate {
             sensor,
             action_type: SensorActions::Scanner,
         }

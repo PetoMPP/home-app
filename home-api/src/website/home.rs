@@ -1,8 +1,12 @@
 use crate::{
-    database::DbPool, into_err, models::{auth::Token, User}, ApiErrorResponse
+    database::DbPool,
+    into_api_err,
+    models::{auth::Token, User},
+    ApiErrorResponse,
 };
 use askama::Template;
 use axum::{http::HeaderMap, response::Html, Extension};
+use reqwest::StatusCode;
 
 use super::is_hx_request;
 
@@ -21,14 +25,16 @@ pub async fn home(
     token: Option<Token>,
     headers: HeaderMap,
 ) -> Result<Html<String>, ApiErrorResponse> {
-    let conn = pool.get().await.map_err(into_err)?;
-    let current_user = Token::get_valid_user(token, &conn)
-        .await
-        .map_err(into_err)?;
+    let conn = into_api_err(pool.get().await, StatusCode::INTERNAL_SERVER_ERROR)?;
+    let current_user = into_api_err(
+        Token::get_valid_user(token, &conn).await,
+        StatusCode::INTERNAL_SERVER_ERROR,
+    )?;
 
     if is_hx_request(&headers) {
         return Ok(Html(HomeInnerTemplate.render().unwrap()));
     }
+
     Ok(Html(
         HomeTemplate {
             current_user: current_user.clone(),

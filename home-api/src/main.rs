@@ -1,3 +1,4 @@
+use askama::Template;
 use axum::{
     extract::{Request, State},
     http::HeaderMap,
@@ -14,10 +15,10 @@ use models::{
 use r2d2_sqlite::SqliteConnectionManager;
 use reqwest::{header::LOCATION, StatusCode};
 use services::scanner_service::ScannerService;
-use std::{net::SocketAddr, sync::Arc};
+use std::{fmt::Display, net::SocketAddr, sync::Arc};
 use tokio::sync::Mutex;
 use tower_http::{services::ServeDir, trace::TraceLayer};
-use website::is_hx_request;
+use website::{components::alert::AlertTemplate, is_hx_request};
 
 mod database;
 mod models;
@@ -107,32 +108,48 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     .await?)
 }
 
-pub type ApiErrorResponse = (StatusCode, HeaderMap, String);
+pub type ApiErrorResponse = (StatusCode, HeaderMap, axum::response::Html<String>);
 
-pub fn into_err_sync(e: impl Into<Box<dyn std::error::Error + Send + Sync>>) -> ApiErrorResponse {
-    let box_err = e.into().to_string();
-    into_err_str(match box_err.as_str() {
-        "" => None,
-        e => Some(e),
+pub fn api_err<T>(error: impl Into<String>, code: StatusCode) -> Result<T, ApiErrorResponse> {
+    Err((
+        code,
+        headers(),
+        axum::response::Html(
+            AlertTemplate {
+                alert_message: Some(error.into()),
+                alert_type: Some(code.into()),
+            }
+            .render()
+            .unwrap(),
+        ),
+    ))
+}
+
+pub fn into_api_err<T>(
+    result: Result<T, impl Display>,
+    code: StatusCode,
+) -> Result<T, ApiErrorResponse> {
+    result.map_err(|e| {
+        (
+            code,
+            headers(),
+            axum::response::Html(
+                AlertTemplate {
+                    alert_message: Some(e.to_string()),
+                    alert_type: Some(code.into()),
+                }
+                .render()
+                .unwrap(),
+            ),
+        )
     })
 }
 
-pub fn into_err(e: impl Into<Box<dyn std::error::Error>>) -> ApiErrorResponse {
-    let box_err = e.into().to_string();
-    into_err_str(match box_err.as_str() {
-        "" => None,
-        e => Some(e),
-    })
-}
-
-pub fn into_err_str(e: Option<impl Into<String>>) -> ApiErrorResponse {
+fn headers() -> HeaderMap {
     let mut header_map = HeaderMap::new();
-    header_map.insert("Hx-Reswap", "innerHTML".parse().unwrap());
-    (
-        StatusCode::INTERNAL_SERVER_ERROR,
-        header_map,
-        e.map(|e| e.into()).unwrap_or_default(),
-    )
+    header_map.insert("Hx-Retarget", "#alert-element".parse().unwrap());
+    header_map.insert("Hx-Reswap", "outerHTML".parse().unwrap());
+    header_map
 }
 
 async fn auth(

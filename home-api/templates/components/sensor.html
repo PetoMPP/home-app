@@ -1,0 +1,14 @@
+{% let host = sensor.host.replace(".", "-") %}
+<div class="card card-compact w-80 shadow-lg rounded-xl border-2 {{crate::website::sensors::sensor_style(sensor)}}" id="sensor-{{host}}">
+    <div class="card-body">
+        <h2 class="card-title">{{crate::website::sensors::sensor_name(sensor)}}</h2>
+        <p class="text-sm">Located in: {{sensor.location}}</p>
+        <div class="card-actions justify-end">
+            {% if let SensorActions::Overview = action_type %}
+            {% include "components/overview-sensor-actions.html" %}
+            {% else if let SensorActions::Scanner = action_type %}
+            {% include "components/scanner-sensor-actions.html" %}
+            {% endif %}
+        </div>
+    </div>
+</div>

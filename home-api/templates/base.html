@@ -22,8 +22,9 @@
     <div class="drawer">
         <input id="menu-drawer" type="checkbox" class="drawer-toggle" />
         <div class="drawer-content flex">
-            <div class="mx-auto h-full justify-center py-6">
-                <div id="page-content" class="mx-auto h-full p-2">
+            <div class="mx-auto h-full justify-center px-6 py-2">
+                <div id="alert-element" class="hidden"></div>
+                <div id="page-content" class="mx-auto h-full">
                     {% block content %}
                     {% endblock %}
                 </div>
@@ -35,5 +36,14 @@
         </div>
     </div>
 </body>
+
+<script>
+    var inner = document.getElementById('alert-inner');
+    inner.addEventListener('animationend', hideAlert);
+    function hideAlert(_event) {
+        var alert = document.getElementById('alert-element');
+        alert.className = 'hidden';
+    }
+</script>
 
 </html>
