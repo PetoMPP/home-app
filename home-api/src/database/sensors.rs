@@ -16,7 +16,7 @@ pub trait SensorDatabase {
         host: &str,
         sensor: Sensor,
     ) -> Result<SensorEntity, Box<dyn std::error::Error>>;
-    async fn delete_sensor(&self, host: &str) -> Result<(), Box<dyn std::error::Error>>;
+    async fn delete_sensor(&self, host: &str) -> Result<usize, Box<dyn std::error::Error>>;
 }
 
 impl SensorDatabase for DbConn {
@@ -46,10 +46,9 @@ impl SensorDatabase for DbConn {
         ).await?.ok_or("Error creating sensor")?)
     }
 
-    async fn delete_sensor(&self, host: &str) -> Result<(), Box<dyn std::error::Error>> {
+    async fn delete_sensor(&self, host: &str) -> Result<usize, Box<dyn std::error::Error>> {
         self.execute(&format!("DELETE FROM sensors WHERE host = '{}'", host))
-            .await?;
-        Ok(())
+            .await
     }
 
     async fn update_sensor(

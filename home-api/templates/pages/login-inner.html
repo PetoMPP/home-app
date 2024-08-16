@@ -1,8 +1,5 @@
 <h1 class="text-2xl font-semibold pb-4">Login</h1>
-{% let alert_type = Some("alert-warning") %}
-{% include "components/alert.html" %}
-<form class="p-4 flex flex-col gap-4 min-w-96" hx-post="/login" hx-target-error="#page-content" hx-push-url="true"
-    hx-target="#page-content" hx-swap="innerHtml">
+<form class="p-4 flex flex-col gap-4" hx-post="/login" hx-target="#page-content" hx-swap="innerHtml">
     <label class="input input-bordered flex items-center gap-2">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4 opacity-70">
             <path
@@ -18,5 +15,5 @@
         </svg>
         <input type="password" class="grow" name="password" placeholder="●●●●●●●●" />
     </label>
-    <input type="submit" class="btn btn-primary" value="Login" />
+    <input type="submit" class="btn btn-primary" value="Login"/>
 </form>

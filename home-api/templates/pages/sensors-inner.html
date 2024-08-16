@@ -1,6 +1,10 @@
 <h1 class="text-2xl pb-4">Sensors overview</h1>
 <div class="flex flex-row gap-6 align-center justify-between">
     <p class="text-xl">Here are the sensors available:</p>
-    <a class="btn btn-primary" hx-get="/sensors" hx-trigger="click" hx-target="#page-content" data-loading-class="btn-disabled">Refresh</a>
+    <a class="btn btn-primary" hx-get="/sensors" hx-target="#page-content" data-loading-class="btn-disabled">Refresh</a>
 </div>
-{% include "components/sensor-table.html" %}
+<div class="flex flex-wrap gap-6 w-full justify-center mt-4">
+    {% for sensor in sensors %}
+    {% include "components/sensor.html" %}
+    {% endfor %}
+</div>
