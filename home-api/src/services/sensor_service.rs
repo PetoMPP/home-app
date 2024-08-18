@@ -1,7 +1,7 @@
 use super::http_client::HttpRequest;
 use crate::models::{
-    db::SensorEntity,
-    json::{ErrorResponse, PairResponse, Sensor, SensorDto, SensorResponse},
+    db::{SensorEntity, SensorFeatures},
+    json::{ErrorResponse, PairResponse, SensorFormData, SensorDto, SensorResponse},
 };
 use std::{error::Error, time::Duration};
 
@@ -15,8 +15,8 @@ pub trait SensorService {
         &self,
         host: &str,
         pair_id: &str,
-        sensor: Sensor,
-    ) -> Result<Sensor, Box<dyn Error + Send + Sync>>;
+        sensor: SensorFormData,
+    ) -> Result<SensorResponse, Box<dyn Error + Send + Sync>>;
 }
 
 impl SensorService for reqwest::Client {
@@ -34,7 +34,7 @@ impl SensorService for reqwest::Client {
         let sensor_entity = SensorEntity {
             name: response.name.to_string(),
             location: response.location.to_string(),
-            features: response.features,
+            features: SensorFeatures::from_bits_retain(response.features),
             host: host.to_string(),
             pair_id: None,
         };
@@ -77,8 +77,8 @@ impl SensorService for reqwest::Client {
         &self,
         host: &str,
         pair_id: &str,
-        sensor: Sensor,
-    ) -> Result<Sensor, Box<dyn Error + Send + Sync>> {
+        sensor: SensorFormData,
+    ) -> Result<SensorResponse, Box<dyn Error + Send + Sync>> {
         let host_uri = format!("http://{}:{}/", host, SENSOR_PORT);
         let sensor_dto = sensor.into();
         let response = self
@@ -89,7 +89,6 @@ impl SensorService for reqwest::Client {
             .await?
             .map_err(|e| e.error.to_string());
 
-        println!("{:?}", response);
         let response = response?;
 
         if response.is_success() {
@@ -101,7 +100,7 @@ impl SensorService for reqwest::Client {
                 .await?
                 .map_err(|e| e.error.to_string())?;
 
-            return Ok(response.into());
+            return Ok(response);
         }
 
         Err("Update failed".into())
