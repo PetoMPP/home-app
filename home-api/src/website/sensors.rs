@@ -6,7 +6,12 @@ use crate::{
     api_err,
     database::{sensors::SensorDatabase, DbPool},
     into_api_err,
-    models::{auth::Token, db::SensorEntity, json::Sensor, User},
+    models::{
+        auth::Token,
+        db::{SensorEntity, SensorFeatures},
+        json::SensorFormData,
+        User,
+    },
     services::sensor_service::SensorService,
     ApiErrorResponse,
 };
@@ -42,18 +47,33 @@ pub struct SensorTemplate {
 }
 
 pub fn sensor_style(sensor: &SensorEntity) -> &'static str {
-    match sensor.features {
-        1.. => "bg-base-300 border-base-content text-base-content",
-        _ => "bg-neutral border-neutral-content text-neutral-content opacity-70",
+    if sensor.features.is_empty() {
+        return "bg-neutral border-neutral-content text-neutral-content opacity-70";
     }
+
+    "bg-base-300 border-base-content text-base-content"
 }
 
 pub fn sensor_name(sensor: &SensorEntity) -> String {
-    let str = match sensor.features {
-        0 => "❕",
-        1 => "🌡️",
-        _ => "❔",
-    };
+    if sensor.features.is_empty() {
+        return format!("❔ {}", sensor.name);
+    }
+    let mut features = sensor.features;
+    let mut next_features = sensor.features;
+    let mut str = String::new();
+    next_features.remove(SensorFeatures::TEMPERATURE);
+    if !features.difference(next_features).is_empty() {
+        features = next_features;
+        str.push_str("🌡️");
+    }
+    next_features.remove(SensorFeatures::MOTION);
+    if !features.difference(next_features).is_empty() {
+        features = next_features;
+        str.push_str("🌪️");
+    }
+    if let Some(unknown) = features.iter().next() {
+        str.push_str(&"❔".repeat(unknown.bits().count_ones() as usize));
+    }
     format!("{} {}", str, sensor.name)
 }
 
@@ -171,7 +191,7 @@ pub async fn update_sensor(
     Extension(pool): Extension<DbPool>,
     form: RawForm,
 ) -> Result<Html<String>, ApiErrorResponse> {
-    let sensor = match serde_urlencoded::from_bytes::<Sensor>(&form.0) {
+    let sensor = match serde_urlencoded::from_bytes::<SensorFormData>(&form.0) {
         Ok(sensor) => sensor,
         Err(e) => {
             return api_err(

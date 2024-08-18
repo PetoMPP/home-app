@@ -15,6 +15,7 @@ pub struct User {
 }
 
 pub mod json {
+    use super::db::SensorFeatures;
     use serde::{Deserialize, Serialize};
 
     #[derive(Serialize, Deserialize, Debug, Default, Clone)]
@@ -28,18 +29,28 @@ pub mod json {
     }
 
     #[derive(Serialize, Deserialize, Debug, Default, Clone)]
-    pub struct Sensor {
+    pub struct SensorFormData {
         pub name: String,
         pub location: String,
-        pub features: u32,
+        #[serde(rename = "features-temp")]
+        pub features_temp: Option<String>,
+        #[serde(rename = "features-motion")]
+        pub features_motion: Option<String>,
     }
 
-    impl From<SensorResponse> for Sensor {
-        fn from(sensor: SensorResponse) -> Self {
-            Sensor {
-                name: sensor.name,
-                location: sensor.location,
-                features: sensor.features,
+    impl Into<SensorDto> for SensorFormData {
+        fn into(self) -> SensorDto {
+            let mut features = SensorFeatures::empty();
+            if self.features_temp.is_some() {
+                features |= SensorFeatures::TEMPERATURE;
+            }
+            if self.features_motion.is_some() {
+                features |= SensorFeatures::MOTION;
+            }
+            SensorDto {
+                name: Some(self.name),
+                location: Some(self.location),
+                features: Some(features.bits() as u32),
             }
         }
     }
@@ -49,16 +60,6 @@ pub mod json {
         pub name: Option<String>,
         pub location: Option<String>,
         pub features: Option<u32>,
-    }
-
-    impl From<Sensor> for SensorDto {
-        fn from(val: Sensor) -> Self {
-            SensorDto {
-                name: Some(val.name),
-                location: Some(val.location),
-                features: Some(val.features),
-            }
-        }
     }
 
     #[derive(Debug, Default, Serialize, Deserialize, Clone)]
@@ -305,7 +306,7 @@ pub mod auth {
 pub mod db {
     use super::{
         auth::{Password, Token},
-        json::{Sensor, SensorDto},
+        json::SensorDto,
         NormalizedString, User,
     };
     use crate::{
@@ -354,11 +355,21 @@ pub mod db {
         }
     }
 
+    bitflags::bitflags! {
+        #[derive(Debug, Default, Clone, Copy)]
+        pub struct SensorFeatures: u32 {
+            const TEMPERATURE = 1 << 0;
+            const MOTION = 1 << 1;
+
+            const _ = !0;
+        }
+    }
+
     #[derive(Debug, Clone, Default)]
     pub struct SensorEntity {
         pub name: String,
         pub location: String,
-        pub features: u32,
+        pub features: SensorFeatures,
         pub host: String,
         pub pair_id: Option<String>,
     }
@@ -399,20 +410,10 @@ pub mod db {
             Ok(SensorEntity {
                 name: row.get::<_, String>(0)?,
                 location: row.get::<_, String>(1)?,
-                features: row.get(2)?,
+                features: SensorFeatures::from_bits_retain(row.get::<_, i64>(2)? as u32),
                 host: row.get::<_, String>(3)?,
                 pair_id: row.get::<_, Option<String>>(4)?,
             })
-        }
-    }
-
-    impl From<SensorEntity> for Sensor {
-        fn from(val: SensorEntity) -> Self {
-            Sensor {
-                name: val.name,
-                location: val.location,
-                features: val.features,
-            }
         }
     }
 
@@ -421,7 +422,7 @@ pub mod db {
             SensorDto {
                 name: Some(val.name),
                 location: Some(val.location),
-                features: Some(val.features),
+                features: Some(val.features.bits() as u32),
             }
         }
     }
