@@ -7,7 +7,8 @@
                 <a hx-get="/" hx-push-url="true" hx-target="#page-content" hx-swap="innerHtml">Overview</a>
                 <ul>
                         <!-- List of paired sensors with minimal data, with all areas and options to assign -->
-                        <li><a hx-get="/sensors" hx-push-url="true" hx-target="#page-content" hx-swap="innerHtml">Sensors</a></li>
+                        <li><a hx-get="/sensors" hx-push-url="true" hx-target="#page-content"
+                                        hx-swap="innerHtml">Sensors</a></li>
                         <!-- List of created user areas with some data -->
                         <li><a>Areas</a></li>
                         <!-- Links added by user from Layout management -->
@@ -20,12 +21,11 @@
                         <!-- Different list of sensors with edit and features -->
                         <li><a>Sensor management</a></li>
                         <li>
-                                <a hx-get="/scanner" hx-push-url="true" hx-target="#page-content"
-                                        hx-swap="innerHtml">Sensor scanner</a>
+                                <a hx-get="/scanner" hx-push-url="true" hx-target="#page-content">Sensor scanner</a>
                         </li>
                         <!-- Allows users to position areas and sensors within -->
                         <li><a>Layout management</a></li>
-                        <li><a>Data management</a></li>
+                        <li><a hx-get="/data" hx-push-url="true" hx-target="#page-content">Data management</a></li>
                 </ul>
         </li>
         <li><a class="bg-warning text-warning-content" hx-post="/logout" hx-push-url="true">Logout</a></li>

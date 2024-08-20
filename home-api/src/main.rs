@@ -84,6 +84,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/scan", post(website::scanner::scan))
         .route("/scan/cancel", post(website::scanner::cancel))
         .route("/scan/status", get(website::scanner::status_ws))
+        .route("/data", get(website::data::data))
         .route("/logout", post(website::login::logout))
         .layer(middleware::from_fn_with_state(pool.clone(), auth))
         .route("/login", get(website::login::login_page))
