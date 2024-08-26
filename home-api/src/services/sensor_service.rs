@@ -1,7 +1,10 @@
 use super::http_client::HttpRequest;
 use crate::models::{
     db::{SensorEntity, SensorFeatures},
-    json::{ErrorResponse, PairResponse, SensorFormData, SensorDto, SensorResponse},
+    json::{
+        ErrorResponse, Measurement, MeasurementsResponse, PairResponse, SensorDto, SensorFormData,
+        SensorResponse,
+    },
 };
 use std::{error::Error, time::Duration};
 
@@ -9,7 +12,10 @@ const SENSOR_PORT: u16 = 42069;
 const PAIR_HEADER_NAME: &str = "X-Pair-Id";
 
 pub trait SensorService {
-    async fn get_sensor(&self, host: &str) -> Result<Result<SensorEntity, String>, Box<dyn Error + Send + Sync>>;
+    async fn get_sensor(
+        &self,
+        host: &str,
+    ) -> Result<Result<SensorEntity, String>, Box<dyn Error + Send + Sync>>;
     async fn pair(&self, host: &str) -> Result<SensorEntity, Box<dyn Error + Send + Sync>>;
     async fn update_sensor(
         &self,
@@ -20,7 +26,10 @@ pub trait SensorService {
 }
 
 impl SensorService for reqwest::Client {
-    async fn get_sensor(&self, host: &str) -> Result<Result<SensorEntity, String>, Box<dyn Error + Send + Sync>> {
+    async fn get_sensor(
+        &self,
+        host: &str,
+    ) -> Result<Result<SensorEntity, String>, Box<dyn Error + Send + Sync>> {
         let host_uri = format!("http://{}:{}/", host, SENSOR_PORT);
         let Ok(response) = self
             .get(host_uri.clone() + "sensor")
@@ -104,5 +113,37 @@ impl SensorService for reqwest::Client {
         }
 
         Err("Update failed".into())
+    }
+}
+
+pub trait TempSensorService {
+    async fn get_temp(
+        &self,
+        host: &str,
+        count: Option<u64>,
+        max_age: Option<u64>,
+    ) -> Result<Vec<Measurement>, anyhow::Error>;
+}
+
+impl TempSensorService for reqwest::Client {
+    async fn get_temp(
+        &self,
+        host: &str,
+        count: Option<u64>,
+        max_age: Option<u64>,
+    ) -> Result<Vec<Measurement>, anyhow::Error> {
+        let host_uri = format!("http://{}:{}/", host, SENSOR_PORT);
+        let response = self
+            .get(host_uri.clone() + "temp")
+            .query(&[
+                ("count", count),
+                ("max_age", max_age),
+            ])
+            .send_parse::<MeasurementsResponse, ErrorResponse>()
+            .await
+            .map_err(|e| anyhow::anyhow!("{}", e))?
+            .map_err(|e| anyhow::anyhow!("{}", e.error))?;
+
+        Ok(response.measurements)
     }
 }

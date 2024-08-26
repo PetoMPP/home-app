@@ -14,7 +14,7 @@ use models::{
 };
 use r2d2_sqlite::SqliteConnectionManager;
 use reqwest::{header::LOCATION, StatusCode};
-use services::scanner_service::ScannerService;
+use services::{scanner_service::ScannerService, sensor_data_service::SensorDataService};
 use std::{fmt::Display, net::SocketAddr, sync::Arc};
 use tokio::sync::Mutex;
 use tower_http::{services::ServeDir, trace::TraceLayer};
@@ -53,14 +53,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         conn.ensure_admin().await?;
     }
     // create services
-    let mut scanner = ScannerService::new(
-        tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()?,
-    );
+    let runtime = tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(4)
+        .enable_all()
+        .build()?;
+    let runtime = Arc::new(runtime);
+    let mut scanner = ScannerService::new(runtime.clone());
     scanner.init(pool.clone()).await;
     let scanner = Mutex::new(scanner);
     let scanner = Arc::new(scanner);
+    let mut data_service = SensorDataService::new(runtime, pool.clone());
+    data_service.init().await?;
+    let data_service = Mutex::new(data_service);
+    let data_service = Arc::new(data_service);
     // start a task to delete expired tokens
     {
         let pool = pool.clone();
@@ -93,6 +98,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nest_service("/assets", ServeDir::new("assets"))
         .layer(Extension(pool))
         .with_state(scanner)
+        .with_state(data_service)
         .layer(TraceLayer::new_for_http());
     #[cfg(debug_assertions)]
     {

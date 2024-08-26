@@ -1,6 +1,8 @@
 use r2d2_sqlite::rusqlite::OptionalExtension;
 
+pub mod data_schedule;
 pub mod sensors;
+pub mod temp_data;
 pub mod user_sessions;
 pub mod users;
 

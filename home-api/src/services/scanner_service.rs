@@ -74,11 +74,11 @@ pub struct ScannerService<T: Scannable> {
     pub last_result: Option<ScannerResult<T>>,
     handle: Option<JoinHandle<Result<ScannerResult<T>, String>>>,
     progress: Arc<Mutex<ScanProgress<T>>>,
-    runtime: tokio::runtime::Runtime,
+    runtime: Arc<tokio::runtime::Runtime>,
 }
 
 impl<T: Scannable> ScannerService<T> {
-    pub fn new(runtime: tokio::runtime::Runtime) -> Self {
+    pub fn new(runtime: Arc<tokio::runtime::Runtime>) -> Self {
         Self {
             last_result: Default::default(),
             handle: Default::default(),
@@ -87,7 +87,6 @@ impl<T: Scannable> ScannerService<T> {
         }
     }
 
-    #[tokio::main]
     async fn scan_inner(
         progress: Arc<Mutex<ScanProgress<T>>>,
         pool: DbPool,
@@ -152,10 +151,7 @@ impl<T: Scannable> ScannerService<T> {
         self.progress = Default::default();
         let progress = self.progress.clone();
         if self.handle.is_none() {
-            self.handle = Some(
-                self.runtime
-                    .spawn_blocking(move || Self::scan_inner(progress.clone(), pool)),
-            );
+            self.handle = Some(self.runtime.spawn(Self::scan_inner(progress.clone(), pool)));
         }
 
         self.state().await
