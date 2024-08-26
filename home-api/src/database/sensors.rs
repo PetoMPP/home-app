@@ -1,5 +1,8 @@
 use super::{Database, DbConn};
-use crate::models::{db::SensorEntity, json::SensorResponse};
+use crate::models::{
+    db::{SensorEntity, SensorFeatures},
+    json::SensorResponse,
+};
 
 pub trait SensorDatabase {
     async fn get_sensor(
@@ -7,6 +10,10 @@ pub trait SensorDatabase {
         host: &str,
     ) -> Result<Option<SensorEntity>, Box<dyn std::error::Error>>;
     async fn get_sensors(&self) -> Result<Vec<SensorEntity>, Box<dyn std::error::Error>>;
+    async fn get_sensors_by_features(
+        &self,
+        features: SensorFeatures,
+    ) -> Result<Vec<SensorEntity>, Box<dyn std::error::Error>>;
     async fn create_sensor(
         &self,
         sensor: SensorEntity,
@@ -30,6 +37,17 @@ impl SensorDatabase for DbConn {
 
     async fn get_sensors(&self) -> Result<Vec<SensorEntity>, Box<dyn std::error::Error>> {
         self.query::<SensorEntity>("SELECT * FROM sensors").await
+    }
+
+    async fn get_sensors_by_features(
+        &self,
+        features: SensorFeatures,
+    ) -> Result<Vec<SensorEntity>, Box<dyn std::error::Error>> {
+        let features = features.bits();
+        self.query::<SensorEntity>(&format!(
+            "SELECT * FROM sensors WHERE features & {features} = {features}"
+        ))
+        .await
     }
 
     async fn create_sensor(

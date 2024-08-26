@@ -87,6 +87,18 @@ pub mod json {
         pub pair_used: u32,
         pub pair_total: u32,
     }
+
+    #[derive(Debug, Default, Serialize, Deserialize, Clone)]
+    pub struct MeasurementsResponse {
+        pub measurements: Vec<Measurement>,
+    }
+
+    #[derive(Debug, Default, Serialize, Deserialize, Clone)]
+    pub struct Measurement {
+        pub timestamp: u64,
+        pub temperature: f32,
+        pub humidity: f32,
+    }
 }
 
 pub mod auth {
@@ -424,6 +436,42 @@ pub mod db {
                 location: Some(val.location),
                 features: Some(val.features.bits() as u32),
             }
+        }
+    }
+
+    pub type DataSchedule = Vec<DataScheduleEntry>;
+
+    #[derive(Clone, Copy, Debug)]
+    pub struct DataScheduleEntry {
+        pub features: SensorFeatures,
+        pub interval_ms: u64,
+    }
+
+    impl FromRow for DataScheduleEntry {
+        fn from_row(row: &r2d2_sqlite::rusqlite::Row) -> r2d2_sqlite::rusqlite::Result<Self> {
+            Ok(DataScheduleEntry {
+                features: SensorFeatures::from_bits_retain(row.get::<_, u64>(0)? as u32),
+                interval_ms: row.get::<_, u64>(1)?,
+            })
+        }
+    }
+
+    #[derive(Debug, Clone)]
+    pub struct TempDataEntry {
+        pub host: String,
+        pub timestamp: u64,
+        pub temperature: f32,
+        pub humidity: f32,
+    }
+
+    impl FromRow for TempDataEntry {
+        fn from_row(row: &rusqlite::Row) -> rusqlite::Result<Self> {
+            Ok(TempDataEntry {
+                host: row.get::<_, String>(0)?,
+                timestamp: row.get::<_, u64>(1)?,
+                temperature: row.get::<_, f64>(2)? as f32,
+                humidity: row.get::<_, f64>(3)? as f32,
+            })
         }
     }
 }
