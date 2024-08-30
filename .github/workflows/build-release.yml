@@ -34,26 +34,27 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: uraimo/run-on-arch-action@v2
+        id: rust-aarch64
         with:
-          targets: aarch64-unknown-linux-gnu
-
-      - run: sudo apt-get install gcc-aarch64-linux-gnu -y
-
-      - name: Setup Node.js 
-        uses: actions/setup-node@v3
-        with:
-          node-version: 18
-          cache: 'npm'
-          cache-dependency-path: home-api/package-lock.json
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Install npx
-        run: npm install npx
-
-      - run: cargo build --release --target aarch64-unknown-linux-gnu --features vendored
+          arch: aarch64
+          distro: ubuntu_latest
+          base_image: rust:latest
+          setup: |
+            mkdir -p "${PWD}/artifacts"
+          dockerRunArgs: |
+            --volume "${PWD}/artifacts:/artifacts"
+            -e API_SECRET=${{secrets.API_SECRET}}
+          shell: /bin/bash
+          run: |
+            curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.0/install.sh | bash
+            source ~/.bashrc
+            cd home-api
+            nvm install 18
+            npm install
+            npm install npx
+            cargo build --release --features vendored
+            cp target/release/home-api /artifacts
       
       - name: Set retention for artifacts
         run: |
@@ -67,6 +68,4 @@ jobs:
         with:
           name: home-api-arm64
           retention-days: ${{ env.RETENTION_DAYS }}
-          path: |
-            target/aarch64-unknown-linux-gnu/release/home-api
-            target/aarch64-unknown-linux-gnu/release/home-api.db
+          path: ./artifacts
