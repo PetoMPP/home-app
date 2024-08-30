@@ -42,7 +42,7 @@ impl SensorService for reqwest::Client {
 
         let sensor_entity = SensorEntity {
             name: response.name.to_string(),
-            location: response.location.to_string(),
+            area: None,
             features: SensorFeatures::from_bits_retain(response.features),
             host: host.to_string(),
             pair_id: None,

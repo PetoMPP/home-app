@@ -1,3 +1,4 @@
+use db::{SensorEntity, SensorFeatures};
 use deref_derive::Deref;
 
 #[derive(Debug, Clone, Default, Deref)]
@@ -12,6 +13,25 @@ impl NormalizedString {
 #[derive(Debug, Clone)]
 pub struct User {
     pub name: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct Area {
+    pub id: i64,
+    pub name: String,
+    pub sensors: Vec<SensorEntity>,
+}
+
+impl Area {
+    pub fn features(&self) -> Vec<SensorFeatures> {
+        let mut features = self
+            .sensors
+            .iter()
+            .flat_map(|s| s.features.iter())
+            .collect::<Vec<_>>();
+        features.sort_by(|a, b| a.bits().cmp(&b.bits()));
+        features
+    }
 }
 
 pub mod json {
@@ -31,7 +51,6 @@ pub mod json {
     #[derive(Serialize, Deserialize, Debug, Default, Clone)]
     pub struct SensorFormData {
         pub name: String,
-        pub location: String,
         #[serde(rename = "features-temp")]
         pub features_temp: Option<String>,
         #[serde(rename = "features-motion")]
@@ -49,7 +68,6 @@ pub mod json {
             }
             SensorDto {
                 name: Some(val.name),
-                location: Some(val.location),
                 features: Some(features.bits()),
             }
         }
@@ -58,14 +76,12 @@ pub mod json {
     #[derive(Debug, Default, Serialize, Deserialize, Clone)]
     pub struct SensorDto {
         pub name: Option<String>,
-        pub location: Option<String>,
         pub features: Option<u32>,
     }
 
     #[derive(Debug, Default, Serialize, Deserialize, Clone)]
     pub struct SensorResponse {
         pub name: String,
-        pub location: String,
         pub features: u32,
         pub pairing: bool,
     }
@@ -414,7 +430,7 @@ pub mod db {
     #[derive(Debug, Clone, Default)]
     pub struct SensorEntity {
         pub name: String,
-        pub location: String,
+        pub area: Option<AreaEntity>,
         pub features: SensorFeatures,
         pub host: String,
         pub pair_id: Option<String>,
@@ -452,10 +468,10 @@ pub mod db {
         fn from_row(row: &rusqlite::Row) -> rusqlite::Result<Self> {
             Ok(SensorEntity {
                 name: row.get::<_, String>(0)?,
-                location: row.get::<_, String>(1)?,
-                features: SensorFeatures::from_bits_retain(row.get::<_, i64>(2)? as u32),
-                host: row.get::<_, String>(3)?,
-                pair_id: row.get::<_, Option<String>>(4)?,
+                area: None,
+                features: SensorFeatures::from_bits_retain(row.get::<_, i64>(1)? as u32),
+                host: row.get::<_, String>(2)?,
+                pair_id: row.get::<_, Option<String>>(3)?,
             })
         }
     }
@@ -464,7 +480,6 @@ pub mod db {
         fn from(val: SensorEntity) -> Self {
             SensorDto {
                 name: Some(val.name),
-                location: Some(val.location),
                 features: Some(val.features.bits()),
             }
         }

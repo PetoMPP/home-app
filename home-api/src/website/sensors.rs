@@ -54,29 +54,6 @@ pub fn sensor_style(sensor: &SensorEntity) -> &'static str {
     "bg-base-300 border-base-content text-base-content"
 }
 
-pub fn sensor_name(sensor: &SensorEntity) -> String {
-    if sensor.features.is_empty() {
-        return format!("❔ {}", sensor.name);
-    }
-    let mut features = sensor.features;
-    let mut next_features = sensor.features;
-    let mut str = String::new();
-    next_features.remove(SensorFeatures::TEMPERATURE);
-    if !features.difference(next_features).is_empty() {
-        features = next_features;
-        str.push_str("🌡️");
-    }
-    next_features.remove(SensorFeatures::MOTION);
-    if !features.difference(next_features).is_empty() {
-        features = next_features;
-        str.push_str("🌪️");
-    }
-    if let Some(unknown) = features.iter().next() {
-        str.push_str(&"❔".repeat(unknown.bits().count_ones() as usize));
-    }
-    format!("{} {}", str, sensor.name)
-}
-
 #[derive(Template, Default)]
 #[template(path = "pages/sensor-edit.html")]
 pub struct SensorEditTemplate {

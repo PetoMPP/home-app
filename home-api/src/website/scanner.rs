@@ -5,7 +5,7 @@ use super::{
 use crate::{
     database::{sensors::SensorDatabase, DbPool},
     into_api_err,
-    models::{auth::Token, db::SensorEntity, User},
+    models::{auth::Token, db::{SensorEntity, SensorFeatures}, User},
     services::{
         scanner_service::{ScannerService, ScannerState},
         sensor_service::SensorService,
