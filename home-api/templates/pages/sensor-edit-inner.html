@@ -1,3 +1,5 @@
+<a hx-get="/sensors" hx-target="#page-content" hx-push-url="true" class="btn glass mb-6">↩ Back to sensors</a>
+
 <h1 id="sensor-edit-title" class="text-2xl font-semibold pb-6">Editing sensor hosted at: {{sensor.host}}.</h1>
 <form class="flex flex-col gap-4 p-4">
     <label class="input input-bordered flex items-center gap-2">
@@ -25,5 +27,4 @@
     </label>
     <button id="sensor-edit-submit" class="btn btn-primary" hx-post="/sensors/{{sensor.host}}"
         hx-target="#alert-element" hx-swap="outerHTML" data-loading-class="btn-disabled">Save</button>
-    <a class="btn" onclick="history.back();">Back</a>
 </form>
