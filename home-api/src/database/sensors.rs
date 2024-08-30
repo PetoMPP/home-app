@@ -55,9 +55,9 @@ impl SensorDatabase for DbConn {
         sensor: SensorEntity,
     ) -> Result<SensorEntity, Box<dyn std::error::Error>> {
         Ok(self.query_single(
-            &format!("INSERT INTO sensors (name, location, features, host, pair_id) VALUES ('{}', '{}', {}, '{}', '{}') RETURNING *",
+            &format!("INSERT INTO sensors (name, area_id, features, host, pair_id) VALUES ('{}', {}, {}, '{}', '{}') RETURNING *",
             sensor.name,
-            sensor.location,
+            sensor.area.map(|a| a.id.to_string()).unwrap_or("NULL".to_string()),
             sensor.features.bits(),
             sensor.host,
             sensor.pair_id.ok_or("pair_id must be set")?),
@@ -75,9 +75,8 @@ impl SensorDatabase for DbConn {
         sensor: SensorResponse,
     ) -> Result<SensorEntity, Box<dyn std::error::Error>> {
         Ok(self.query_single(
-            &format!("UPDATE sensors SET name = '{}', location = '{}', features = {} WHERE host = '{}' RETURNING *",
+            &format!("UPDATE sensors SET name = '{}', features = {} WHERE host = '{}' RETURNING *",
             sensor.name,
-            sensor.location,
             sensor.features,
             host),
         ).await?.ok_or("Error updating sensor")?)

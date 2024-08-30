@@ -1,8 +1,10 @@
-<div class="flex flex-row">
-    {% if features.contains(SensorFeatures::TEMPERATURE) %}
-    <p>🌡️</p>
-    {% endif %}
-    {% if features.contains(SensorFeatures::MOTION) %}
-    <p>🌪️</p>
-    {% endif %}
-</div>
+{% if features.contains(SensorFeatures::TEMPERATURE) %}
+🌡️
+{% endif %}
+{% if features.contains(SensorFeatures::MOTION) %}
+🌪️
+{% endif %}
+{% let rest = features - SensorFeatures::TEMPERATURE - SensorFeatures::MOTION %}
+{% for feature in 0..rest.bits().count_ones() %}
+❔
+{% endfor %}
