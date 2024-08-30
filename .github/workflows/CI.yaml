@@ -11,9 +11,12 @@ env:
 
 jobs:
   # Run cargo test
-  test-workspace:
-    name: Test Workspace
+  test-api:
+    name: Test api
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: home-api
     env:
       API_SECRET: just-to-pass-the-build-for-testing
     steps:
@@ -29,18 +32,8 @@ jobs:
             ~/.cargo/git/db/
             target/
           key: ${{ runner.os }}-cargo-test-${{ hashFiles('**/Cargo.toml') }}
-      - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - name: Install Dependencies
-        run: sudo apt-get update; sudo apt-get install pkg-config libx11-dev libasound2-dev libudev-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev
-      - name: Run cargo test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo test --all-features
 
   compile-sensor:
     runs-on: ubuntu-latest
@@ -52,11 +45,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Create my-secret.h
+      - name: Create secret.h
         run: |
-          echo "#pragma once" > my-secret.h
-          echo "char ssid[] = \"ssid\";" >> my-secret.h
-          echo "char pass[] = \"password\";" >> my-secret.h
+          echo "#pragma once" > src/secret.h
+          echo "char ssid[] = \"ssid\";" >> src/secret.h
+          echo "char pass[] = \"password\";" >> src/secret.h
 
       - name: Compile sketch
         uses: arduino/compile-sketches@v1
@@ -70,9 +63,12 @@ jobs:
           fqbn: "esp32:esp32:esp32"
 
   # Run cargo clippy -- -D warnings
-  clippy_check:
+  clippy-api:
     name: Clippy
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: home-api
     env:
       API_SECRET: just-to-pass-the-build-for-testing
     steps:
@@ -95,9 +91,12 @@ jobs:
         run: cargo clippy -- -D warnings
 
   # Run cargo fmt --all -- --check
-  format:
+  format-api:
     name: Format
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: home-api
     env:
       API_SECRET: just-to-pass-the-build-for-testing
     steps:
