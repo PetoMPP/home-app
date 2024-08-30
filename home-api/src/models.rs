@@ -38,19 +38,19 @@ pub mod json {
         pub features_motion: Option<String>,
     }
 
-    impl Into<SensorDto> for SensorFormData {
-        fn into(self) -> SensorDto {
+    impl From<SensorFormData> for SensorDto {
+        fn from(val: SensorFormData) -> Self {
             let mut features = SensorFeatures::empty();
-            if self.features_temp.is_some() {
+            if val.features_temp.is_some() {
                 features |= SensorFeatures::TEMPERATURE;
             }
-            if self.features_motion.is_some() {
+            if val.features_motion.is_some() {
                 features |= SensorFeatures::MOTION;
             }
             SensorDto {
-                name: Some(self.name),
-                location: Some(self.location),
-                features: Some(features.bits() as u32),
+                name: Some(val.name),
+                location: Some(val.location),
+                features: Some(features.bits()),
             }
         }
     }
@@ -120,16 +120,13 @@ pub mod json {
             if self.features_motion.is_some() {
                 features |= SensorFeatures::MOTION;
             }
-            let interval_ms = self
-                .interval
-                .splitn(3, ':')
-                .into_iter()
-                .enumerate()
-                .try_fold(0u64, |mut interval, (i, s)| {
+            let interval_ms = self.interval.splitn(3, ':').enumerate().try_fold(
+                0u64,
+                |mut interval, (i, s)| {
                     interval += s.parse::<u64>()? * 60u64.pow(2 - i as u32);
                     Result::<_, anyhow::Error>::Ok(interval)
-                })?
-                * 1000;
+                },
+            )? * 1000;
             Ok(crate::models::db::DataScheduleEntry {
                 features,
                 interval_ms,
@@ -435,22 +432,19 @@ pub mod db {
             client.get_sensor(host)
         }
 
-        fn check(
+        async fn check(
             &mut self,
             pool: &crate::database::DbPool,
-        ) -> impl std::future::Future<Output = Result<(), Box<dyn std::error::Error + Send + Sync>>> + Send
-        {
-            async move {
-                self.pair_id = pool
-                    .get()
-                    .await
-                    .map_err(|e| e.to_string())?
-                    .get_sensor(&self.host)
-                    .await
-                    .map_err(|e| e.to_string())?
-                    .and_then(|s| s.pair_id);
-                Ok(())
-            }
+        ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+            self.pair_id = pool
+                .get()
+                .await
+                .map_err(|e| e.to_string())?
+                .get_sensor(&self.host)
+                .await
+                .map_err(|e| e.to_string())?
+                .and_then(|s| s.pair_id);
+            Ok(())
         }
     }
 
@@ -471,7 +465,7 @@ pub mod db {
             SensorDto {
                 name: Some(val.name),
                 location: Some(val.location),
-                features: Some(val.features.bits() as u32),
+                features: Some(val.features.bits()),
             }
         }
     }

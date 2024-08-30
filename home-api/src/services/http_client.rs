@@ -72,7 +72,7 @@ impl HttpRequest for RequestBuilder {
             .ok_or(anyhow::anyhow!("Unable to clone request"))?
             .send_parse::<T, E>()
             .await;
-        while let Err(_) = result {
+        while result.is_err() {
             attempts += 1;
             if attempts >= retries {
                 break;
@@ -98,7 +98,7 @@ impl HttpRequest for RequestBuilder {
             .ok_or(anyhow::anyhow!("Unable to clone request"))?
             .send_parse_err::<E>()
             .await;
-        while let Err(_) = result {
+        while result.is_err() {
             attempts += 1;
             if attempts >= retries {
                 break;

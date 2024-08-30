@@ -37,10 +37,9 @@ impl TempDataDatabase for DbConn {
             query.push_str(&offset.to_string());
         }
 
-        Ok(self
-            .query::<TempDataEntry>(&query)
+        self.query::<TempDataEntry>(&query)
             .await
-            .map_err(|e| anyhow::anyhow!("{}", e))?)
+            .map_err(|e| anyhow::anyhow!("{}", e))
     }
 
     async fn create_temp_data_batch(
@@ -50,8 +49,9 @@ impl TempDataDatabase for DbConn {
         if entries.is_empty() {
             return Ok(0);
         }
-        let mut query =
-            String::from("INSERT INTO sensor_temp_data(host, timestamp, temperature, humidity) \nVALUES ");
+        let mut query = String::from(
+            "INSERT INTO sensor_temp_data(host, timestamp, temperature, humidity) \nVALUES ",
+        );
         for entry in entries {
             query.push_str(&format!(
                 "('{}', {}, {}, {}),\n",
@@ -61,9 +61,8 @@ impl TempDataDatabase for DbConn {
         query.pop();
         query.pop();
         query.push_str("\nON CONFLICT(host, timestamp) DO UPDATE SET temperature = excluded.temperature, humidity = excluded.humidity;");
-        Ok(self
-            .execute(&query)
+        self.execute(&query)
             .await
-            .map_err(|e| anyhow::anyhow!("{}", e))?)
+            .map_err(|e| anyhow::anyhow!("{}", e))
     }
 }

@@ -94,12 +94,12 @@ async fn handle_temp_data(
         ));
     }
 
-    return Ok(Html(
+    Ok(Html(
         BrowseDataTemplate {
             current_user: current_user.clone(),
             page: page.unwrap_or(1),
         }
         .render()
         .unwrap(),
-    ));
+    ))
 }
