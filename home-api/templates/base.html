@@ -22,7 +22,7 @@
     <div class="drawer">
         <input id="menu-drawer" type="checkbox" class="drawer-toggle" />
         <div class="drawer-content flex">
-            <div class="mx-auto h-full justify-center px-6 py-2">
+            <div class="mx-auto h-full justify-center px-6 py-2 mt-20">
                 <div id="alert-element" class="hidden"></div>
                 <div id="page-content" class="mx-auto h-full">
                     {% block content %}
@@ -37,16 +37,47 @@
     </div>
 </body>
 <script>
-    document.addEventListener('htmx:afterSwap', updateDateTimes);
+    document.addEventListener('htmx:afterSwap', parseTimestamps);
+    document.addEventListener('htmx:wsAfterMessage', parseTimestamps);
+    parseTimestamps();
 
-    function updateDateTimes() {
-        var elements = document.querySelectorAll('[timestamp]')
-            .forEach(element => {
-                var date = new Date(element.innerHTML * 1000);
-                element.innerHTML = date.toLocaleString();
-                element.removeAttribute('timestamp');
-            });
-            console.log('updatedDateTimes');
+    document.addEventListener('htmx:afterSwap', parseDurations);
+    document.addEventListener('htmx:wsAfterMessage', parseDurations);
+    parseDurations();
+
+    function parseTimestamps() {
+        var elements = document.querySelectorAll('[timestamp]');
+        elements.forEach(element => {
+            var date = new Date(element.innerHTML * 1000);
+            element.innerHTML = date.toLocaleString();
+            element.removeAttribute('timestamp');
+        });
+    }
+    function parseDurations() {
+        var elements = document.querySelectorAll('[duration]');
+        elements.forEach(element => {
+            element.innerHTML = msToTime(Number(element.innerHTML));
+            element.removeAttribute('duration');
+        });
+    }
+    function msToTime(duration) {
+        var milliseconds = Math.floor(duration % 1000),
+            seconds = Math.floor((duration / 1000) % 60),
+            minutes = Math.floor((duration / (1000 * 60)) % 60),
+            hours = Math.floor((duration / (1000 * 60 * 60)) % 24);
+
+        hours = (hours < 10) ? "0" + hours : hours;
+        minutes = (minutes < 10) ? "0" + minutes : minutes;
+        seconds = (seconds < 10) ? "0" + seconds : seconds;
+        milliseconds = (milliseconds < 100)
+            ? milliseconds < 10
+                ? "00" + milliseconds
+                : "0" + milliseconds
+            : milliseconds;
+
+        return milliseconds > 0 ?
+            hours + ":" + minutes + ":" + seconds + "." + milliseconds
+            : hours + ":" + minutes + ":" + seconds;
     }
 </script>
 

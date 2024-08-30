@@ -10,22 +10,8 @@
         hx-target="#browse-content">Browse motion</button>
 </div>
 
-<div id="browse-content" class="flex flex-col gap-2 py-2 items-center"></div>
-
-<script>
-    document.addEventListener('DOMContentLoaded', fetchIfNeeded);
-    function fetchIfNeeded() {
-        var btns = document.getElementById('browse-buttons');
-        for (var i = 0; i < btns.children.length; i++) {
-            var element = btns.children[i];
-            if (element.tagName !== 'BUTTON') {
-                continue;
-            }
-            var hxGet = element.getAttribute('hx-get');
-            if ((window.location.pathname + window.location.search).startsWith(hxGet)) {
-                element.click();
-            }
-        }
-        document.removeEventListener('DOMContentLoaded', fetchIfNeeded);
-    }
-</script>
+<div id="browse-content" class="flex flex-col gap-2 py-2 items-center">
+    {% if let Some(feature) = feature %}
+    {{feature|safe}}
+    {% endif %}
+</div>

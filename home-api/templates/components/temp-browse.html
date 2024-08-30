@@ -24,8 +24,8 @@
 
 <div class="join">
     <button {% if page==1 %} class="join-item btn btn-disabled" {% else %} class="join-item btn" {% endif %}
-        hx-get="/data/browse?feature=temp&page={{page - 1}}" hx-target="#browse-content">«</button>
+        hx-get="/data/browse?feature=temp&page={{page - 1}}" hx-target="#browse-content" hx-push-url="true">«</button>
     <div class="join-item bg-base-200 content-center p-2 select-none">Page {{page}}</div>
     <button {% if last_page %} class="join-item btn btn-disabled" {% else %} class="join-item btn" {% endif %}
-        hx-get="/data/browse?feature=temp&page={{page + 1}}" hx-target="#browse-content">»</button>
+        hx-get="/data/browse?feature=temp&page={{page + 1}}" hx-target="#browse-content" hx-push-url="true">»</button>
 </div>

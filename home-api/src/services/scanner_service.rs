@@ -55,21 +55,6 @@ pub struct ScannerResult<T> {
     pub duration: chrono::Duration,
 }
 
-impl<T: Scannable> ScannerResult<T> {
-    pub fn created_display(&self) -> String {
-        self.created.format("%Y-%m-%d %H:%M:%S UTC").to_string()
-    }
-
-    pub fn duration_display(&self) -> String {
-        format!(
-            "{:02}:{:02}.{:03}",
-            self.duration.num_minutes(),
-            self.duration.num_seconds() % 60,
-            self.duration.num_milliseconds() % 1000
-        )
-    }
-}
-
 pub struct ScannerService<T: Scannable> {
     pub last_result: Option<ScannerResult<T>>,
     handle: Option<JoinHandle<Result<ScannerResult<T>, String>>>,
