@@ -11,6 +11,7 @@ use axum::{
     Extension,
 };
 
+pub mod areas;
 pub mod components;
 pub mod data;
 pub mod home;
