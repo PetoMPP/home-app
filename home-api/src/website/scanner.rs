@@ -16,7 +16,7 @@ use askama::Template;
 use axum::{
     extract::{
         ws::{Message, WebSocket},
-        ConnectInfo, Path, State, WebSocketUpgrade,
+        ConnectInfo, Path, WebSocketUpgrade,
     },
     http::HeaderMap,
     response::{Html, IntoResponse},
@@ -52,7 +52,7 @@ pub struct ScannerContentTemplate {
 }
 
 pub async fn scanner(
-    State(scanner): State<Arc<Mutex<ScannerService<SensorEntity>>>>,
+    Extension(scanner): Extension<Arc<Mutex<ScannerService<SensorEntity>>>>,
     Extension(pool): Extension<DbPool>,
     token: Option<Token>,
     headers: HeaderMap,
@@ -88,7 +88,7 @@ pub async fn scanner(
 }
 
 pub async fn scan(
-    State(scanner): State<Arc<Mutex<ScannerService<SensorEntity>>>>,
+    Extension(scanner): Extension<Arc<Mutex<ScannerService<SensorEntity>>>>,
     Extension(pool): Extension<DbPool>,
 ) -> Html<String> {
     let state = scanner.lock().await.init(pool).await;
@@ -104,7 +104,7 @@ pub async fn scan(
 }
 
 pub async fn cancel(
-    State(scanner): State<Arc<Mutex<ScannerService<SensorEntity>>>>,
+    Extension(scanner): Extension<Arc<Mutex<ScannerService<SensorEntity>>>>,
 ) -> Html<String> {
     scanner.lock().await.cancel().await;
     let state = scanner.lock().await.state().await;
@@ -143,7 +143,7 @@ pub async fn pair_sensor(
 pub async fn status_ws(
     ws: WebSocketUpgrade,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
-    State(scanner): State<Arc<Mutex<ScannerService<SensorEntity>>>>,
+    Extension(scanner): Extension<Arc<Mutex<ScannerService<SensorEntity>>>>,
 ) -> impl IntoResponse {
     ws.on_upgrade(move |socket| handle_status_socket(socket, addr, scanner.clone()))
 }

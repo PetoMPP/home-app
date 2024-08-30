@@ -38,6 +38,16 @@ impl SensorDataService {
         Ok(())
     }
 
+    pub async fn restart(&mut self) -> Result<(), anyhow::Error> {
+        println!("Restarting sensor data service");
+        if let Some(handle) = self.handle.take() {
+            handle.abort();
+            _ = handle.await;
+        }
+        self.init().await?;
+        Ok(())
+    }
+
     fn start(&mut self) {
         let Some(schedule) = self.current_schedule.as_ref() else {
             return;
@@ -59,8 +69,18 @@ impl SensorDataService {
                             % entry.interval_ms,
                     );
                     loop {
-                        time::sleep(time::Duration::from_millis(entry.interval_ms) - last_dur)
-                            .await;
+                        time::sleep(
+                            time::Duration::from_millis(entry.interval_ms)
+                                .checked_sub(last_dur)
+                                .unwrap_or_else(|| {
+                                    println!(
+                                        "Sensor data service task took too long to run: {:?}",
+                                        last_dur
+                                    );
+                                    time::Duration::default()
+                                }),
+                        )
+                        .await;
                         let start = Instant::now();
                         Self::collect_data(&entry, &pool).await?;
 
@@ -89,7 +109,7 @@ impl SensorDataService {
                 .map_err(|e| anyhow::anyhow!("{}", e))?;
 
             for sensor in sensors {
-                const SAVE_INTERVAL: i64 = 1000 * 60 * 15; // 15 minutes
+                const SAVE_INTERVAL: i64 = 60 * 15; // 15 minutes
                 const MAX_COUNT: i64 = 150;
                 let last_measurement = pool
                     .get()
@@ -101,10 +121,30 @@ impl SensorDataService {
                 let count = (Utc::now().timestamp() - last_measurement as i64) / SAVE_INTERVAL + 4;
                 let count = count.min(MAX_COUNT);
                 let client = reqwest::Client::new();
-                let measurements = client
-                    .get_temp(&sensor.host, Some(count as u64), None)
-                    .await?;
-                let _ = pool
+                let host = &sensor.host;
+                let pair_id = &sensor.pair_id.unwrap();
+                let mut retries = 0;
+                let mut measurements = client
+                    .get_temp(host, pair_id, Some(count as u64), None)
+                    .await;
+                while let Err(_) = measurements {
+                    retries += 1;
+                    if retries >= 3 {
+                        break;
+                    }
+                    time::sleep(time::Duration::from_secs_f32(0.5)).await;
+                    measurements = client
+                        .get_temp(host, pair_id, Some(count as u64), None)
+                        .await;
+                }
+                let measurements = match measurements {
+                    Ok(m) => m,
+                    Err(e) => {
+                        println!("Failed to get measurements: {}", e);
+                        continue;
+                    }
+                };
+                let _count = pool
                     .get()
                     .await?
                     .create_temp_data_batch(

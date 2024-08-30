@@ -1,13 +1,13 @@
-<h1 class="text-2xl font-semibold pb-4">Data management</h1>
+<h1 class="page-title">Data management</h1>
 <p>Here you can manage the data stored in the system.</p>
 <ul class="menu gap-2 text-lg">
     <li>
-        <a class="link link-primary" href="#">Browse stored data</a>
+        <a class="link link-primary" hx-get="/data/browse" hx-push-url="true" hx-target="#page-content">Browse stored data</a>
     </li>
     <li>
-        <a class="link link-primary" href="#">Data collection policies</a>
+        <a class="link link-primary" hx-get="/data/schedule" hx-push-url="true" hx-target="#page-content">Data collection policies</a>
     </li>
-    <li>
-        <a class="link link-primary" href="#" class="disabled">Backup management</a>
+    <li class="disabled">
+        <a class="disabled">Backup management</a>
     </li>
 </ul>

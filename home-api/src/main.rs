@@ -4,13 +4,12 @@ use axum::{
     http::HeaderMap,
     middleware::{self, Next},
     response::Response,
-    routing::{delete, get, post},
+    routing::{delete, get, post, put},
     Extension, Router,
 };
 use database::{user_sessions::UserSessionDatabase, users::UserDatabase, DbManager, DbPool};
 use models::{
-    auth::{Claims, Token},
-    NormalizedString,
+    auth::{Claims, Token}, db::SensorEntity, NormalizedString
 };
 use r2d2_sqlite::SqliteConnectionManager;
 use reqwest::{header::LOCATION, StatusCode};
@@ -58,7 +57,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .enable_all()
         .build()?;
     let runtime = Arc::new(runtime);
-    let mut scanner = ScannerService::new(runtime.clone());
+    let mut scanner = ScannerService::<SensorEntity>::new(runtime.clone());
     scanner.init(pool.clone()).await;
     let scanner = Mutex::new(scanner);
     let scanner = Arc::new(scanner);
@@ -90,6 +89,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/scan/cancel", post(website::scanner::cancel))
         .route("/scan/status", get(website::scanner::status_ws))
         .route("/data", get(website::data::data))
+        .route("/data/browse", get(website::data::browse_data::browse_data))
+        .route("/data/schedule", get(website::data::schedule::data_schedule))
+        .route("/data/schedule", put(website::data::schedule::create_schedule_entry))
+        .route("/data/schedule", delete(website::data::schedule::delete_schedule_entry))
         .route("/logout", post(website::login::logout))
         .layer(middleware::from_fn_with_state(pool.clone(), auth))
         .route("/login", get(website::login::login_page))
@@ -97,8 +100,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .fallback(website::not_found)
         .nest_service("/assets", ServeDir::new("assets"))
         .layer(Extension(pool))
-        .with_state(scanner)
-        .with_state(data_service)
+        .layer(Extension(data_service))
+        .layer(Extension(scanner))
         .layer(TraceLayer::new_for_http());
     #[cfg(debug_assertions)]
     {

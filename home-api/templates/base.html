@@ -36,5 +36,18 @@
         </div>
     </div>
 </body>
+<script>
+    document.addEventListener('htmx:afterSwap', updateDateTimes);
+
+    function updateDateTimes() {
+        var elements = document.querySelectorAll('[timestamp]')
+            .forEach(element => {
+                var date = new Date(element.innerHTML * 1000);
+                element.innerHTML = date.toLocaleString();
+                element.removeAttribute('timestamp');
+            });
+            console.log('updatedDateTimes');
+    }
+</script>
 
 </html>

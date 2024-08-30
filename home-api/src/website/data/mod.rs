@@ -1,11 +1,16 @@
+use super::is_hx_request;
+use crate::{
+    database::DbPool,
+    into_api_err,
+    models::{auth::Token, User},
+    ApiErrorResponse,
+};
 use askama::Template;
 use axum::{http::HeaderMap, response::Html, Extension};
 use reqwest::StatusCode;
 
-use crate::{database::DbPool, into_api_err, models::{auth::Token, User}, ApiErrorResponse};
-
-use super::is_hx_request;
-
+pub mod browse_data;
+pub mod schedule;
 
 #[derive(Template)]
 #[template(path = "pages/data.html")]

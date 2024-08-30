@@ -11,22 +11,8 @@
     <label class="input input-bordered flex items-center gap-2">
         Features
         <input type="checkbox" class="hidden" />
-        <div class="flex flex-row">
-            <label for="features-input">🌡️</label>
-            <input id="features-input" type="checkbox" class="checkbox checkbox-sm checkbox-primary"
-            name="features-temp"
-            {% if sensor.features.contains(SensorFeatures::TEMPERATURE) %}
-            checked
-            {% endif %}/>
-        </div>
-        <div class="flex flex-row">
-            <label for="features-input">🌪️</label>
-            <input id="features-input" type="checkbox" class="checkbox checkbox-sm checkbox-primary"
-                name="features-motion"
-            {% if sensor.features.contains(SensorFeatures::MOTION) %}
-            checked
-            {% endif %}/>
-        </div>
+        {% let features = sensor.features %}
+        {% include "components/sensor-features-input.html" %}
     </label>
     <label class="input input-bordered flex items-center gap-2">
         Host
