@@ -124,7 +124,7 @@ impl<T: Scannable> ScannerService<T> {
             handles.spawn(task);
         }
 
-        while let Some(_) = handles.join_next().await {}
+        while handles.join_next().await.is_some() {}
 
         let created = chrono::Utc::now();
         let duration = created - started;

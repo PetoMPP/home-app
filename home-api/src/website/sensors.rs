@@ -165,19 +165,11 @@ pub async fn edit_sensor(
         return api_err("Sensor not found", StatusCode::NOT_FOUND);
     };
     Ok(match is_hx_request(&headers) {
-        true => Html(
-            SensorEditInnerTemplate {
-                sensor,
-                ..Default::default()
-            }
-            .render()
-            .unwrap(),
-        ),
+        true => Html(SensorEditInnerTemplate { sensor }.render().unwrap()),
         false => Html(
             SensorEditTemplate {
                 current_user,
                 sensor,
-                ..Default::default()
             }
             .render()
             .unwrap(),
@@ -205,7 +197,7 @@ pub async fn update_sensor(
         Token::get_valid_user(token, &conn).await,
         StatusCode::INTERNAL_SERVER_ERROR,
     )?;
-    if let None = current_user {
+    if current_user.is_none() {
         return api_err("Unauthorized", StatusCode::UNAUTHORIZED);
     }
     let host = host.replace('-', ".");

@@ -15,27 +15,25 @@ impl DataScheduleDatabase for DbConn {
         &self,
         entry: DataScheduleEntry,
     ) -> Result<Option<DataScheduleEntry>, anyhow::Error> {
-        Ok(self
-            .query_single::<DataScheduleEntry>(&format!(
-                "INSERT INTO data_schedule (features, interval_ms)\n\
+        self.query_single::<DataScheduleEntry>(&format!(
+            "INSERT INTO data_schedule (features, interval_ms)\n\
                 VALUES ('{}', '{}')\n\
                 ON CONFLICT(features)\n\
                 DO\n\
                   UPDATE SET interval_ms = excluded.interval_ms\n\
                   WHERE interval_ms != excluded.interval_ms\n\
                   RETURNING *",
-                entry.features.bits(),
-                entry.interval_ms
-            ))
-            .await
-            .map_err(|e| anyhow::anyhow!("{}", e))?)
+            entry.features.bits(),
+            entry.interval_ms
+        ))
+        .await
+        .map_err(|e| anyhow::anyhow!("{}", e))
     }
 
     async fn get_schedule(&self) -> Result<DataSchedule, anyhow::Error> {
-        Ok(self
-            .query::<DataScheduleEntry>("SELECT * FROM data_schedule")
+        self.query::<DataScheduleEntry>("SELECT * FROM data_schedule")
             .await
-            .map_err(|e| anyhow::anyhow!("{}", e))?)
+            .map_err(|e| anyhow::anyhow!("{}", e))
     }
 
     async fn delete_entry(&self, entry: DataScheduleEntry) -> Result<bool, anyhow::Error> {

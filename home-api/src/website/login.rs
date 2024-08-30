@@ -36,7 +36,6 @@ pub async fn login_page(
     Ok(Html(
         LoginTemplate {
             current_user: current_user.clone(),
-            ..Default::default()
         }
         .render()
         .unwrap(),
@@ -88,15 +87,11 @@ pub async fn logout(
         return api_err("Invalid session", StatusCode::UNAUTHORIZED);
     };
     let conn = into_api_err(pool.get().await, StatusCode::INTERNAL_SERVER_ERROR)?;
-    if let Err(_) = conn
-        .delete_session(NormalizedString::new(claims.sub), token)
-        .await
-    {
-        return api_err(
-            "Failed to delete session",
-            StatusCode::INTERNAL_SERVER_ERROR,
-        );
-    }
+    into_api_err(
+        conn.delete_session(NormalizedString::new(claims.sub), token)
+            .await,
+        StatusCode::INTERNAL_SERVER_ERROR,
+    )?;
     let mut header_map = HeaderMap::new();
     header_map.insert(SET_COOKIE, "session=;".parse().unwrap());
     header_map.insert("HX-Redirect", "/".parse().unwrap());

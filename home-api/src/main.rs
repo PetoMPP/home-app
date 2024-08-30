@@ -9,7 +9,9 @@ use axum::{
 };
 use database::{user_sessions::UserSessionDatabase, users::UserDatabase, DbManager, DbPool};
 use models::{
-    auth::{Claims, Token}, db::SensorEntity, NormalizedString
+    auth::{Claims, Token},
+    db::SensorEntity,
+    NormalizedString,
 };
 use r2d2_sqlite::SqliteConnectionManager;
 use reqwest::{header::LOCATION, StatusCode};
@@ -90,9 +92,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/scan/status", get(website::scanner::status_ws))
         .route("/data", get(website::data::data))
         .route("/data/browse", get(website::data::browse_data::browse_data))
-        .route("/data/schedule", get(website::data::schedule::data_schedule))
-        .route("/data/schedule", put(website::data::schedule::create_schedule_entry))
-        .route("/data/schedule", delete(website::data::schedule::delete_schedule_entry))
+        .route(
+            "/data/schedule",
+            get(website::data::schedule::data_schedule),
+        )
+        .route(
+            "/data/schedule",
+            put(website::data::schedule::create_schedule_entry),
+        )
+        .route(
+            "/data/schedule",
+            delete(website::data::schedule::delete_schedule_entry),
+        )
         .route("/logout", post(website::login::logout))
         .layer(middleware::from_fn_with_state(pool.clone(), auth))
         .route("/login", get(website::login::login_page))
