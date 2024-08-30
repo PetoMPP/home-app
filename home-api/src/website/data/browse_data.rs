@@ -10,6 +10,7 @@ use axum::{extract::Query, http::HeaderMap, response::Html, Extension};
 use reqwest::StatusCode;
 use std::collections::BTreeMap;
 
+#[cfg_attr(not(target_os = "windows"), allow(dead_code))]
 #[derive(Template)]
 #[template(path = "pages/data-browse.html")]
 pub struct BrowseDataTemplate {
@@ -17,6 +18,7 @@ pub struct BrowseDataTemplate {
     pub page: usize,
 }
 
+#[cfg_attr(not(target_os = "windows"), allow(dead_code))]
 #[derive(Template)]
 #[template(path = "pages/data-browse-inner.html")]
 pub struct BrowseDataInnerTemplate {
