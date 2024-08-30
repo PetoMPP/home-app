@@ -26,6 +26,7 @@ use reqwest::{Client, StatusCode};
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tokio::sync::Mutex;
 
+#[cfg_attr(not(target_os = "windows"), allow(dead_code))]
 #[derive(Template)]
 #[template(path = "pages/scanner.html")]
 pub struct ScannerTemplate {
@@ -35,6 +36,7 @@ pub struct ScannerTemplate {
     pub sensors: Vec<SensorEntity>,
 }
 
+#[cfg_attr(not(target_os = "windows"), allow(dead_code))]
 #[derive(Template)]
 #[template(path = "pages/scanner-ws.html")]
 pub struct ScannerWsTemplate {
@@ -43,6 +45,7 @@ pub struct ScannerWsTemplate {
     pub sensors: Vec<SensorEntity>,
 }
 
+#[cfg_attr(not(target_os = "windows"), allow(dead_code))]
 #[derive(Template)]
 #[template(path = "pages/scanner-content.html")]
 pub struct ScannerContentTemplate {
