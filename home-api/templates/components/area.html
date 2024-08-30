@@ -1,0 +1,10 @@
+<div class="card card-compact w-80 shadow-lg rounded-xl border-2 bg-base-300 border-neutral" id="area-{{area.id}}">
+    <div class="card-body">
+        <h2 class="card-title">{{area.name}}</h2>
+        <p class="text-sm">Here will be sensors assigned</p>
+        <div class="card-actions justify-end">
+            <button class="btn btn-sm btn-primary" hx-get="/areas/{{area.id}}" hx-push-url="true" hx-target="#page-content">Edit</button>
+            <button class="btn btn-sm btn-error" hx-delete="/areas/{{area.id}}" hx-target="#page-content">Delete</button>
+        </div>
+    </div>
+</div>

@@ -505,4 +505,10 @@ pub mod db {
             })
         }
     }
+
+    #[derive(Debug, Clone)]
+    pub struct AreaEntity {
+        pub id: i64,
+        pub name: String,
+    }
 }

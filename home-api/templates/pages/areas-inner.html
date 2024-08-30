@@ -1,0 +1,7 @@
+<h1 class="page-title">Areas overview</h1>
+<p class="text-xl">Here are the areas available:</p>
+<div class="flex flex-wrap gap-6 w-full justify-center mt-4">
+    {% for area in areas %}
+    {% include "components/area.html" %}
+    {% endfor %}
+</div>
