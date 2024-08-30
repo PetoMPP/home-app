@@ -99,6 +99,43 @@ pub mod json {
         pub temperature: f32,
         pub humidity: f32,
     }
+
+    #[derive(Debug, Default, Serialize, Deserialize, Clone)]
+    pub struct ScheduleEntryFormData {
+        #[serde(rename = "features-temp")]
+        pub features_temp: Option<String>,
+        #[serde(rename = "features-motion")]
+        pub features_motion: Option<String>,
+        pub interval: String,
+    }
+
+    impl TryInto<super::db::DataScheduleEntry> for ScheduleEntryFormData {
+        type Error = anyhow::Error;
+
+        fn try_into(self) -> Result<super::db::DataScheduleEntry, Self::Error> {
+            let mut features = SensorFeatures::empty();
+            if self.features_temp.is_some() {
+                features |= SensorFeatures::TEMPERATURE;
+            }
+            if self.features_motion.is_some() {
+                features |= SensorFeatures::MOTION;
+            }
+            let interval_ms = self
+                .interval
+                .splitn(3, ':')
+                .into_iter()
+                .enumerate()
+                .try_fold(0u64, |mut interval, (i, s)| {
+                    interval += s.parse::<u64>()? * 60u64.pow(2 - i as u32);
+                    Result::<_, anyhow::Error>::Ok(interval)
+                })?
+                * 1000;
+            Ok(crate::models::db::DataScheduleEntry {
+                features,
+                interval_ms,
+            })
+        }
+    }
 }
 
 pub mod auth {
@@ -368,7 +405,7 @@ pub mod db {
     }
 
     bitflags::bitflags! {
-        #[derive(Debug, Default, Clone, Copy)]
+        #[derive(Debug, Default, Clone, Copy, PartialEq)]
         pub struct SensorFeatures: u32 {
             const TEMPERATURE = 1 << 0;
             const MOTION = 1 << 1;
@@ -441,7 +478,7 @@ pub mod db {
 
     pub type DataSchedule = Vec<DataScheduleEntry>;
 
-    #[derive(Clone, Copy, Debug)]
+    #[derive(Clone, Copy, Debug, PartialEq)]
     pub struct DataScheduleEntry {
         pub features: SensorFeatures,
         pub interval_ms: u64,

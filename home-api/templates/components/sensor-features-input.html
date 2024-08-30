@@ -1,0 +1,16 @@
+<div class="flex flex-row items-center">
+    <label for="features-input">🌡️</label>
+    <input id="features-input" type="checkbox" class="checkbox checkbox-sm checkbox-primary"
+    name="features-temp"
+    {% if features.contains(SensorFeatures::TEMPERATURE) %}
+    checked
+    {% endif %}/>
+</div>
+<div class="flex flex-row items-center">
+    <label for="features-input">🌪️</label>
+    <input id="features-input" type="checkbox" class="checkbox checkbox-sm checkbox-primary"
+        name="features-motion"
+    {% if features.contains(SensorFeatures::MOTION) %}
+    checked
+    {% endif %}/>
+</div>

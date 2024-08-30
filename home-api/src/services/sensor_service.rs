@@ -6,6 +6,7 @@ use crate::models::{
         SensorResponse,
     },
 };
+use serde::Serialize;
 use std::{error::Error, time::Duration};
 
 const SENSOR_PORT: u16 = 42069;
@@ -120,25 +121,36 @@ pub trait TempSensorService {
     async fn get_temp(
         &self,
         host: &str,
+        pair_id: &str,
         count: Option<u64>,
         max_age: Option<u64>,
     ) -> Result<Vec<Measurement>, anyhow::Error>;
+}
+
+#[derive(Serialize)]
+struct TempRequest {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    count: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    timestamp: Option<u64>,
 }
 
 impl TempSensorService for reqwest::Client {
     async fn get_temp(
         &self,
         host: &str,
+        pair_id: &str,
         count: Option<u64>,
         max_age: Option<u64>,
     ) -> Result<Vec<Measurement>, anyhow::Error> {
         let host_uri = format!("http://{}:{}/", host, SENSOR_PORT);
         let response = self
-            .get(host_uri.clone() + "temp")
-            .query(&[
-                ("count", count),
-                ("max_age", max_age),
-            ])
+            .get(host_uri.clone() + "dht")
+            .header(PAIR_HEADER_NAME, pair_id)
+            .json(&TempRequest {
+                count,
+                timestamp: max_age,
+            })
             .send_parse::<MeasurementsResponse, ErrorResponse>()
             .await
             .map_err(|e| anyhow::anyhow!("{}", e))?

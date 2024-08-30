@@ -1,10 +1,13 @@
 use super::{Database, DbConn};
 use crate::models::db::TempDataEntry;
-use sqlx::Execute;
 
 pub trait TempDataDatabase {
-    async fn get_temp_data(&self, host: Option<impl Into<String>>, limit: Option<usize>, offset: Option<usize>) -> Result<Vec<TempDataEntry>, anyhow::Error>;
-    async fn create_temp_data(&self, entry: TempDataEntry) -> Result<TempDataEntry, anyhow::Error>;
+    async fn get_temp_data(
+        &self,
+        host: Option<impl Into<String>>,
+        limit: Option<usize>,
+        offset: Option<usize>,
+    ) -> Result<Vec<TempDataEntry>, anyhow::Error>;
     async fn create_temp_data_batch(
         &self,
         entries: Vec<TempDataEntry>,
@@ -12,58 +15,54 @@ pub trait TempDataDatabase {
 }
 
 impl TempDataDatabase for DbConn {
-    async fn get_temp_data(&self, host: Option<impl Into<String>>, limit: Option<usize>, offset: Option<usize>) -> Result<Vec<TempDataEntry>, anyhow::Error> {
-        let mut builder = sqlx::QueryBuilder::new("SELECT * FROM temp_data");
+    async fn get_temp_data(
+        &self,
+        host: Option<impl Into<String>>,
+        limit: Option<usize>,
+        offset: Option<usize>,
+    ) -> Result<Vec<TempDataEntry>, anyhow::Error> {
+        let mut query = String::from("SELECT * FROM sensor_temp_data");
         if let Some(host) = host {
-            builder.push("WHERE host = ");
-            builder.push_bind(host.into());
+            query.push_str(" WHERE host = '");
+            query.push_str(&host.into());
+            query.push('\'');
         }
+        query.push_str(" ORDER BY timestamp DESC");
         if let Some(limit) = limit {
-            builder.push(" LIMIT ");
-            builder.push_bind(limit as i64);
+            query.push_str(" LIMIT ");
+            query.push_str(&limit.to_string());
         }
         if let Some(offset) = offset {
-            builder.push(" OFFSET ");
-            builder.push_bind(offset as i64);
+            query.push_str(" OFFSET ");
+            query.push_str(&offset.to_string());
         }
-        builder.push(" ORDER BY timestamp DESC");
 
         Ok(self
-            .query::<TempDataEntry>(builder.build().sql())
+            .query::<TempDataEntry>(&query)
             .await
             .map_err(|e| anyhow::anyhow!("{}", e))?)
-    }
-
-    async fn create_temp_data(&self, entry: TempDataEntry) -> Result<TempDataEntry, anyhow::Error> {
-        Ok(self
-            .query_single::<TempDataEntry>(&format!(
-                "INSERT INTO temp_data (host, timestamp, temperature, humidity) VALUES ('{}', {}, {}, {}) RETURNING *",
-                entry.host,
-                entry.timestamp,
-                entry.temperature,
-                entry.humidity,
-            ))
-            .await
-            .map_err(|e| anyhow::anyhow!("{}", e))?
-            .ok_or(anyhow::anyhow!("Failed to create temp data"))?)
     }
 
     async fn create_temp_data_batch(
         &self,
         entries: Vec<TempDataEntry>,
     ) -> Result<usize, anyhow::Error> {
-        let mut builder = sqlx::QueryBuilder::new(
-            "INSERT INTO temp_data(host, timestamp, temperature, humidity) ",
-        );
-        builder.push_values(entries, |mut b, temp| {
-            b.push_bind(temp.host)
-                .push_bind(temp.timestamp as u32)
-                .push_bind(temp.temperature)
-                .push_bind(temp.humidity);
-        });
-        builder.build().sql();
+        if entries.is_empty() {
+            return Ok(0);
+        }
+        let mut query =
+            String::from("INSERT INTO sensor_temp_data(host, timestamp, temperature, humidity) \nVALUES ");
+        for entry in entries {
+            query.push_str(&format!(
+                "('{}', {}, {}, {}),\n",
+                entry.host, entry.timestamp, entry.temperature, entry.humidity,
+            ));
+        }
+        query.pop();
+        query.pop();
+        query.push_str("\nON CONFLICT(host, timestamp) DO UPDATE SET temperature = excluded.temperature, humidity = excluded.humidity;");
         Ok(self
-            .execute(&builder.build().sql())
+            .execute(&query)
             .await
             .map_err(|e| anyhow::anyhow!("{}", e))?)
     }
