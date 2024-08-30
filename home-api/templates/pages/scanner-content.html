@@ -5,7 +5,7 @@
         {% when ScannerState::Idle with (result)%}
         {% match result %}
         {% when Some with (result) %}
-        <p>Sensor data fetched at {{ result.created_display()}} in {{result.duration_display()}}.</p>
+        <p>Sensor data fetched at <time timestamp>{{result.created.timestamp()}}</time> in <time duration>{{result.duration.num_milliseconds()}}</time>.</p>
         {% when None %}
         <p>No sensor data fetched yet</p>
         {% endmatch %}

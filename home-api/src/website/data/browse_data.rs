@@ -1,5 +1,5 @@
 use crate::{
-    database::{temp_data::TempDataDatabase, DbConn, DbPool},
+    database::{temp_data::TempDataDatabase, DbPool},
     into_api_err,
     models::{auth::Token, db::TempDataEntry, User},
     website::is_hx_request,
@@ -8,28 +8,34 @@ use crate::{
 use askama::Template;
 use axum::{extract::Query, http::HeaderMap, response::Html, Extension};
 use reqwest::StatusCode;
-use std::collections::BTreeMap;
+use serde::Deserialize;
 
 #[cfg_attr(not(target_os = "windows"), allow(dead_code))]
 #[derive(Template)]
 #[template(path = "pages/data-browse.html")]
 pub struct BrowseDataTemplate {
     pub current_user: Option<User>,
-    pub page: usize,
+    pub feature: Option<String>,
 }
 
 #[cfg_attr(not(target_os = "windows"), allow(dead_code))]
 #[derive(Template)]
 #[template(path = "pages/data-browse-inner.html")]
 pub struct BrowseDataInnerTemplate {
-    pub page: usize,
+    pub feature: Option<String>,
+}
+
+#[derive(Deserialize)]
+pub struct BrowseDataQuery {
+    feature: Option<String>,
+    page: Option<usize>,
 }
 
 pub async fn browse_data(
     Extension(pool): Extension<DbPool>,
     token: Option<Token>,
     headers: HeaderMap,
-    Query(query): Query<BTreeMap<String, String>>,
+    Query(query): Query<BrowseDataQuery>,
 ) -> Result<Html<String>, ApiErrorResponse> {
     let conn = into_api_err(pool.get().await, StatusCode::INTERNAL_SERVER_ERROR)?;
     let current_user = into_api_err(
@@ -37,9 +43,9 @@ pub async fn browse_data(
         StatusCode::INTERNAL_SERVER_ERROR,
     )?;
     let is_hx_request = is_hx_request(&headers);
-    if let Some(feature) = query.get("feature") {
+    if let Some(feature) = query.feature.as_ref() {
         let feature = match feature.as_str() {
-            "temp" => Some(handle_temp_data(&query, &conn, is_hx_request, &current_user).await),
+            "temp" => Some(handle_temp_data(query.page, &pool, is_hx_request, &current_user).await),
             _ => None,
         };
         if let Some(feature) = feature {
@@ -48,13 +54,19 @@ pub async fn browse_data(
     }
 
     if is_hx_request {
-        return Ok(Html(BrowseDataInnerTemplate { page: 1 }.render().unwrap()));
+        return Ok(Html(
+            BrowseDataInnerTemplate {
+                feature: query.feature,
+            }
+            .render()
+            .unwrap(),
+        ));
     }
 
     Ok(Html(
         BrowseDataTemplate {
             current_user,
-            page: 1,
+            feature: query.feature,
         }
         .render()
         .unwrap(),
@@ -70,14 +82,14 @@ pub struct TempBrowseTemplate {
 }
 
 async fn handle_temp_data(
-    query: &BTreeMap<String, String>,
-    conn: &DbConn,
+    page: Option<usize>,
+    pool: &DbPool,
     is_hx_request: bool,
     current_user: &Option<User>,
 ) -> Result<Html<String>, ApiErrorResponse> {
     const PAGE_SIZE: usize = 10;
-    let page = query.get("page").and_then(|p| p.parse::<usize>().ok());
     let offset = page.map(|p| (p - 1) * PAGE_SIZE);
+    let conn = into_api_err(pool.get().await, StatusCode::INTERNAL_SERVER_ERROR)?;
     let items = into_api_err(
         conn.get_temp_data(Option::<&'static str>::None, Some(PAGE_SIZE + 1), offset)
             .await,
@@ -99,7 +111,15 @@ async fn handle_temp_data(
     Ok(Html(
         BrowseDataTemplate {
             current_user: current_user.clone(),
-            page: page.unwrap_or(1),
+            feature: Some(
+                TempBrowseTemplate {
+                    items: items.into_iter().take(PAGE_SIZE).collect(),
+                    page: page.unwrap_or(1),
+                    last_page,
+                }
+                .render()
+                .unwrap(),
+            ),
         }
         .render()
         .unwrap(),

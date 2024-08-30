@@ -13,7 +13,7 @@
                     {% include "components/sensor-features-input.html" %}
                     <label class="input input-sm input-bordered flex items-center gap-2">
                         Interval
-                        <input id="interval-input" type="time" class="grow" name="interval" value="00:05:00" />
+                        <input id="interval-input" type="time" class="grow" name="interval" value="00:05:00" step="5"/>
                     </label>
                 </form>
             </div>
@@ -30,7 +30,7 @@
         <div class="card-body">
             <div class="card-title">
                 {% include "components/sensor-features.html" %}
-                <p>Poll interval: {{crate::website::data::schedule::interval(policy)}}</p>
+                <p>Poll interval: <time duration>{{policy.interval_ms}}</time></p>
             </div>
             <div class="card-actions justify-end">
                 <button class="btn btn-sm btn-error"

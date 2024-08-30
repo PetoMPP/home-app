@@ -15,7 +15,6 @@ use crate::{
 };
 use askama::Template;
 use axum::{extract::Query, http::HeaderMap, response::Html, Extension, Form};
-use chrono::NaiveTime;
 use reqwest::StatusCode;
 use tokio::sync::Mutex;
 
@@ -30,13 +29,6 @@ pub struct DataScheduleTemplate {
 #[template(path = "pages/data-schedule-inner.html")]
 pub struct DataScheduleInnerTemplate {
     pub schedule: Vec<DataScheduleEntry>,
-}
-
-pub fn interval(entry: &DataScheduleEntry) -> String {
-    let interval =
-        NaiveTime::from_num_seconds_from_midnight_opt((entry.interval_ms / 1000) as u32, 0)
-            .unwrap();
-    interval.format("%H:%M:%S").to_string()
 }
 
 pub fn delete_query(entry: &DataScheduleEntry) -> String {
