@@ -1,3 +1,4 @@
+use super::sensor_service::TempSensorService;
 use crate::{
     database::{
         data_schedule::DataScheduleDatabase, sensors::SensorDatabase, temp_data::TempDataDatabase,
@@ -11,8 +12,6 @@ use tokio::{
     task::JoinHandle,
     time::{self, Instant},
 };
-
-use super::sensor_service::TempSensorService;
 
 pub struct SensorDataService {
     handle: Option<JoinHandle<()>>,
@@ -123,26 +122,11 @@ impl SensorDataService {
                 let client = reqwest::Client::new();
                 let host = &sensor.host;
                 let pair_id = &sensor.pair_id.unwrap();
-                let mut retries = 0;
-                let mut measurements = client
+                let Ok(measurements) = client
                     .get_temp(host, pair_id, Some(count as u64), None)
-                    .await;
-                while let Err(_) = measurements {
-                    retries += 1;
-                    if retries >= 3 {
-                        break;
-                    }
-                    time::sleep(time::Duration::from_secs_f32(0.5)).await;
-                    measurements = client
-                        .get_temp(host, pair_id, Some(count as u64), None)
-                        .await;
-                }
-                let measurements = match measurements {
-                    Ok(m) => m,
-                    Err(e) => {
-                        println!("Failed to get measurements: {}", e);
-                        continue;
-                    }
+                    .await
+                else {
+                    continue;
                 };
                 let _count = pool
                     .get()
