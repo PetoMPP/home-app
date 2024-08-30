@@ -115,22 +115,11 @@ impl<T: Scannable> ScannerService<T> {
             let task = tokio::spawn(async move {
                 let host = format!("{}{}", target, i);
                 let client = reqwest::Client::new();
-                const MAX_RETRIES: u32 = 3;
-                let mut retry_count = 0;
-                let mut scanned = T::scan(&client, &host).await;
-                while let Err(_) = scanned {
-                    retry_count += 1;
-                    if retry_count >= MAX_RETRIES {
-                        break;
-                    }
-                    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-                    scanned = T::scan(&client, &host).await;
+                if let Ok(Ok(mut scanned)) = T::scan(&client, &host).await {
+                    scanned.check(&pool).await.ok();
+                    progress.lock().await.scanned.push(scanned);
                 }
                 progress.lock().await.progress += 1;
-                if let Ok(Ok(mut scanned)) = scanned {
-                    scanned.check(&pool).await.ok();
-                    progress.lock().await.scanned.push(scanned.clone());
-                }
             });
             handles.spawn(task);
         }

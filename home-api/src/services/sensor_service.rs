@@ -6,6 +6,7 @@ use crate::models::{
         SensorResponse,
     },
 };
+use anyhow::anyhow;
 use serde::Serialize;
 use std::{error::Error, time::Duration};
 
@@ -32,14 +33,12 @@ impl SensorService for reqwest::Client {
         host: &str,
     ) -> Result<Result<SensorEntity, String>, Box<dyn Error + Send + Sync>> {
         let host_uri = format!("http://{}:{}/", host, SENSOR_PORT);
-        let Ok(response) = self
+        let response = self
             .get(host_uri.clone() + "sensor")
             .timeout(std::time::Duration::from_secs_f32(0.2))
-            .send_parse::<SensorResponse, ErrorResponse>()
+            .send_parse_retry::<SensorResponse, ErrorResponse>(3)
             .await?
-        else {
-            return Err("No sensor found".into());
-        };
+            .map_err(|e| anyhow!("{}", e.error))?;
 
         let sensor_entity = SensorEntity {
             name: response.name.to_string(),
@@ -56,25 +55,25 @@ impl SensorService for reqwest::Client {
         let host_uri = format!("http://{}:{}/", host, SENSOR_PORT);
         let response = self
             .post(host_uri.clone() + "pair")
-            .send_parse::<PairResponse, ErrorResponse>()
+            .send_parse_retry::<PairResponse, ErrorResponse>(3)
             .await?
-            .map_err(|e| e.error.to_string())?;
+            .map_err(|e| anyhow!("{}", e.error))?;
 
         let id = response.id;
 
-        // Wait for the sensor to reopen the socket, can be shortened probably
-        tokio::time::sleep(Duration::from_secs_f32(1.0)).await;
+        // Wait for the sensor to reopen the socket
+        tokio::time::sleep(Duration::from_secs_f32(0.2)).await;
 
         let response = self
             .post(host_uri.clone() + "pair/confirm")
             .header(PAIR_HEADER_NAME, id.as_str())
-            .send_parse_err::<ErrorResponse>()
+            .send_parse_err_retry::<ErrorResponse>(3)
             .await?
             .map_err(|e| e.error.to_string())?;
 
         if response.is_success() {
-            // Wait for the sensor to reopen the socket, can be shortened probably
-            tokio::time::sleep(Duration::from_secs_f32(1.0)).await;
+            // Wait for the sensor to reopen the socket
+            tokio::time::sleep(Duration::from_secs_f32(0.2)).await;
             let mut sensor = self.get_sensor(host).await??;
             sensor.pair_id = Some(id.to_string());
             Ok(sensor)
@@ -95,18 +94,18 @@ impl SensorService for reqwest::Client {
             .post(host_uri.clone() + "sensor")
             .header(PAIR_HEADER_NAME, pair_id)
             .json::<SensorDto>(&sensor_dto)
-            .send_parse_err::<ErrorResponse>()
+            .send_parse_err_retry::<ErrorResponse>(3)
             .await?
             .map_err(|e| e.error.to_string());
 
         let response = response?;
 
         if response.is_success() {
-            // Wait for the sensor to reopen the socket, can be shortened probably
-            tokio::time::sleep(Duration::from_secs_f32(1.0)).await;
+            // Wait for the sensor to reopen the socket
+            tokio::time::sleep(Duration::from_secs_f32(0.2)).await;
             let response = self
                 .get(host_uri.clone() + "sensor")
-                .send_parse::<SensorResponse, ErrorResponse>()
+                .send_parse_retry::<SensorResponse, ErrorResponse>(3)
                 .await?
                 .map_err(|e| e.error.to_string())?;
 
@@ -151,7 +150,7 @@ impl TempSensorService for reqwest::Client {
                 count,
                 timestamp: max_age,
             })
-            .send_parse::<MeasurementsResponse, ErrorResponse>()
+            .send_parse_retry::<MeasurementsResponse, ErrorResponse>(3)
             .await
             .map_err(|e| anyhow::anyhow!("{}", e))?
             .map_err(|e| anyhow::anyhow!("{}", e.error))?;
