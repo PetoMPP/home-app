@@ -1,15 +1,9 @@
 use crate::{
-    database::DbPool,
-    into_api_err,
-    models::{auth::Token, User},
+    models::{RequestData, User},
     ApiErrorResponse,
 };
 use askama::Template;
-use axum::{
-    http::{HeaderMap, StatusCode},
-    response::Html,
-    Extension,
-};
+use axum::{http::StatusCode, response::Html};
 
 pub mod areas;
 pub mod components;
@@ -18,10 +12,6 @@ pub mod home;
 pub mod login;
 pub mod scanner;
 pub mod sensors;
-
-pub fn is_hx_request(headers: &HeaderMap) -> bool {
-    headers.contains_key("Hx-Request")
-}
 
 #[derive(Template)]
 #[template(path = "pages/error.html")]
@@ -39,18 +29,11 @@ pub struct ErrorInnerTemplate {
 }
 
 pub async fn not_found(
-    headers: HeaderMap,
-    Extension(pool): Extension<DbPool>,
-    token: Option<Token>,
+    req_data: RequestData,
 ) -> Result<(StatusCode, Html<String>), ApiErrorResponse> {
-    let conn = into_api_err(pool.get().await, StatusCode::INTERNAL_SERVER_ERROR)?;
-    let current_user = into_api_err(
-        Token::get_valid_user(token, &conn).await,
-        StatusCode::INTERNAL_SERVER_ERROR,
-    )?;
     Ok((
         StatusCode::NOT_FOUND,
-        match is_hx_request(&headers) {
+        match req_data.is_hx_request {
             true => Html(
                 ErrorInnerTemplate {
                     status: StatusCode::NOT_FOUND,
@@ -61,7 +44,7 @@ pub async fn not_found(
             ),
             false => Html(
                 ErrorTemplate {
-                    current_user,
+                    current_user: req_data.user,
                     status: StatusCode::NOT_FOUND,
                     message: "Not Found".to_string(),
                 }

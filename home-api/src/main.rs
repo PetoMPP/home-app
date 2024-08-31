@@ -1,6 +1,6 @@
 use askama::Template;
 use axum::{
-    extract::{Request, State},
+    extract::Request,
     http::HeaderMap,
     middleware::{self, Next},
     response::Response,
@@ -11,7 +11,7 @@ use database::{user_sessions::UserSessionDatabase, users::UserDatabase, DbManage
 use models::{
     auth::{Claims, Token},
     db::SensorEntity,
-    NormalizedString,
+    NormalizedString, RequestData,
 };
 use r2d2_sqlite::SqliteConnectionManager;
 use reqwest::{header::LOCATION, StatusCode};
@@ -19,7 +19,7 @@ use services::{scanner_service::ScannerService, sensor_data_service::SensorDataS
 use std::{fmt::Display, net::SocketAddr, sync::Arc};
 use tokio::sync::Mutex;
 use tower_http::{services::ServeDir, trace::TraceLayer};
-use website::{components::alert::AlertTemplate, is_hx_request};
+use website::{components::alert::AlertTemplate, ErrorTemplate};
 
 mod database;
 mod models;
@@ -111,7 +111,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/login", post(website::login::login))
         .fallback(website::not_found)
         .nest_service("/assets", ServeDir::new("assets"))
-        .layer(Extension(pool))
+        .with_state(pool)
         .layer(Extension(data_service))
         .layer(Extension(scanner))
         .layer(TraceLayer::new_for_http());
@@ -132,14 +132,34 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 pub type ApiErrorResponse = (StatusCode, HeaderMap, axum::response::Html<String>);
 
-pub fn api_err<T>(error: impl Into<String>, code: StatusCode) -> Result<T, ApiErrorResponse> {
+pub fn api_err<T>(
+    error: impl Into<String>,
+    code: StatusCode,
+    req_data: &RequestData,
+) -> Result<T, ApiErrorResponse> {
+    if req_data.is_hx_request {
+        return Err((
+            code,
+            headers(),
+            axum::response::Html(
+                AlertTemplate {
+                    alert_message: Some(error.into()),
+                    alert_type: Some(code.into()),
+                }
+                .render()
+                .unwrap(),
+            ),
+        ));
+    }
+
     Err((
         code,
         headers(),
         axum::response::Html(
-            AlertTemplate {
-                alert_message: Some(error.into()),
-                alert_type: Some(code.into()),
+            ErrorTemplate {
+                current_user: req_data.user.clone(),
+                status: code,
+                message: error.into(),
             }
             .render()
             .unwrap(),
@@ -150,15 +170,34 @@ pub fn api_err<T>(error: impl Into<String>, code: StatusCode) -> Result<T, ApiEr
 pub fn into_api_err<T>(
     result: Result<T, impl Display>,
     code: StatusCode,
+    req_data: &RequestData,
 ) -> Result<T, ApiErrorResponse> {
+    if req_data.is_hx_request {
+        return result.map_err(|e| {
+            (
+                code,
+                headers(),
+                axum::response::Html(
+                    AlertTemplate {
+                        alert_message: Some(e.to_string()),
+                        alert_type: Some(code.into()),
+                    }
+                    .render()
+                    .unwrap(),
+                ),
+            )
+        });
+    }
+
     result.map_err(|e| {
         (
             code,
             headers(),
             axum::response::Html(
-                AlertTemplate {
-                    alert_message: Some(e.to_string()),
-                    alert_type: Some(code.into()),
+                ErrorTemplate {
+                    current_user: req_data.user.clone(),
+                    status: code,
+                    message: e.to_string(),
                 }
                 .render()
                 .unwrap(),
@@ -175,13 +214,12 @@ fn headers() -> HeaderMap {
 }
 
 async fn auth(
-    State(pool): State<DbPool>,
-    headers: HeaderMap,
+    req_data: RequestData,
     request: Request,
     next: Next,
 ) -> Result<Response, (StatusCode, HeaderMap)> {
     let mut header_map = HeaderMap::new();
-    let error = match is_hx_request(&headers) {
+    let error = match req_data.is_hx_request {
         true => {
             header_map.insert("HX-Redirect", "/login".parse().unwrap());
 
@@ -192,19 +230,23 @@ async fn auth(
             (StatusCode::SEE_OTHER, header_map)
         }
     };
-    let (claims, token) = Token::try_from(&headers)
+    let (claims, token) = Token::try_from(&req_data.headers)
         .and_then(|t| (&t).try_into().map(|c: Claims| (c, t)))
         .map_err(|_| error.clone())?;
-    let conn = pool.get().await.map_err(|_| error.clone())?;
     let normalized_name = NormalizedString::new(&claims.sub);
-    let _session = conn
+    let _session = req_data
+        .conn
         .get_session(normalized_name.clone(), token.clone())
         .await
         .ok()
         .and_then(|s| s)
         .ok_or(error.clone())?;
     if !claims.validate() {
-        conn.delete_session(normalized_name, token).await.ok();
+        req_data
+            .conn
+            .delete_session(normalized_name, token)
+            .await
+            .ok();
         return Err(error);
     }
 

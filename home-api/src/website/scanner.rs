@@ -1,11 +1,11 @@
-use super::{
-    is_hx_request,
-    sensors::{SensorActions, SensorTemplate},
-};
+use super::sensors::{SensorActions, SensorTemplate};
 use crate::{
     database::{sensors::SensorDatabase, DbPool},
     into_api_err,
-    models::{auth::Token, db::{SensorEntity, SensorFeatures}, User},
+    models::{
+        db::{SensorEntity, SensorFeatures},
+        RequestData, User,
+    },
     services::{
         scanner_service::{ScannerService, ScannerState},
         sensor_service::SensorService,
@@ -18,7 +18,6 @@ use axum::{
         ws::{Message, WebSocket},
         ConnectInfo, Path, WebSocketUpgrade,
     },
-    http::HeaderMap,
     response::{Html, IntoResponse},
     Extension,
 };
@@ -55,20 +54,13 @@ pub struct ScannerContentTemplate {
 }
 
 pub async fn scanner(
+    req_data: RequestData,
     Extension(scanner): Extension<Arc<Mutex<ScannerService<SensorEntity>>>>,
-    Extension(pool): Extension<DbPool>,
-    token: Option<Token>,
-    headers: HeaderMap,
 ) -> Result<Html<String>, ApiErrorResponse> {
-    let conn = into_api_err(pool.get().await, StatusCode::INTERNAL_SERVER_ERROR)?;
-    let current_user = into_api_err(
-        Token::get_valid_user(token, &conn).await,
-        StatusCode::INTERNAL_SERVER_ERROR,
-    )?;
     let state = scanner.lock().await.state().await;
     let sensors = state.scanned();
-    Ok(match is_hx_request(&headers) {
-        true => Html(
+    if req_data.is_hx_request {
+        return Ok(Html(
             ScannerWsTemplate {
                 state,
                 action_type: SensorActions::Scanner,
@@ -76,18 +68,19 @@ pub async fn scanner(
             }
             .render()
             .unwrap(),
-        ),
-        false => Html(
-            ScannerTemplate {
-                state,
-                current_user,
-                action_type: SensorActions::Scanner,
-                sensors,
-            }
-            .render()
-            .unwrap(),
-        ),
-    })
+        ));
+    }
+
+    Ok(Html(
+        ScannerTemplate {
+            state,
+            current_user: req_data.user,
+            action_type: SensorActions::Scanner,
+            sensors,
+        }
+        .render()
+        .unwrap(),
+    ))
 }
 
 pub async fn scan(
@@ -123,15 +116,19 @@ pub async fn cancel(
 }
 
 pub async fn pair_sensor(
+    req_data: RequestData,
     Path(host): Path<String>,
-    Extension(pool): Extension<DbPool>,
 ) -> Result<Html<String>, ApiErrorResponse> {
     let host = host.replace('-', ".");
-    let sensor = into_api_err(Client::new().pair(&host).await, StatusCode::UNAUTHORIZED)?;
-    let conn = into_api_err(pool.get().await, StatusCode::INTERNAL_SERVER_ERROR)?;
     let sensor = into_api_err(
-        conn.create_sensor(sensor).await,
+        Client::new().pair(&host).await,
+        StatusCode::UNAUTHORIZED,
+        &req_data,
+    )?;
+    let sensor = into_api_err(
+        req_data.conn.create_sensor(sensor).await,
         StatusCode::INTERNAL_SERVER_ERROR,
+        &req_data,
     )?;
     Ok(Html(
         SensorTemplate {

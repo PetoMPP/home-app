@@ -1,5 +1,63 @@
+use crate::{database::DbConn, DbPool};
+use auth::Token;
+use axum::{
+    extract::FromRequestParts,
+    http::{request::Parts, HeaderMap},
+};
 use db::{SensorEntity, SensorFeatures};
 use deref_derive::Deref;
+use reqwest::StatusCode;
+
+pub struct RequestData {
+    pub token: Option<Token>,
+    pub user: Option<User>,
+    pub is_hx_request: bool,
+    pub conn: DbConn,
+    pub headers: HeaderMap,
+}
+
+impl FromRequestParts<DbPool> for RequestData {
+    type Rejection = StatusCode;
+
+    #[doc = " Perform the extraction."]
+    #[must_use]
+    #[allow(clippy::type_complexity, clippy::type_repetition_in_bounds)]
+    fn from_request_parts<'life0, 'life1, 'async_trait>(
+        parts: &'life0 mut Parts,
+        state: &'life1 DbPool,
+    ) -> ::core::pin::Pin<
+        Box<
+            dyn ::core::future::Future<Output = Result<Self, Self::Rejection>>
+                + ::core::marker::Send
+                + 'async_trait,
+        >,
+    >
+    where
+        'life0: 'async_trait,
+        'life1: 'async_trait,
+        Self: 'async_trait,
+    {
+        Box::pin(async move {
+            let token = Token::try_from(&parts.headers).ok();
+            let conn = state
+                .get()
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            let user = Token::get_valid_user(token.clone(), &conn)
+                .await
+                .map_err(|_| StatusCode::UNAUTHORIZED)?;
+            let is_hx_request = parts.headers.contains_key("Hx-Request");
+
+            Ok(Self {
+                token,
+                user,
+                is_hx_request,
+                conn,
+                headers: parts.headers.clone(),
+            })
+        })
+    }
+}
 
 #[derive(Debug, Clone, Default, Deref)]
 pub struct NormalizedString(String);

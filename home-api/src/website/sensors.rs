@@ -1,16 +1,12 @@
-use super::{
-    components::alert::{AlertTemplate, AlertType},
-    is_hx_request,
-};
+use super::components::alert::{AlertTemplate, AlertType};
 use crate::{
     api_err,
-    database::{sensors::SensorDatabase, DbPool},
+    database::sensors::SensorDatabase,
     into_api_err,
     models::{
-        auth::Token,
         db::{SensorEntity, SensorFeatures},
         json::SensorFormData,
-        User,
+        RequestData, User,
     },
     services::sensor_service::SensorService,
     ApiErrorResponse,
@@ -20,7 +16,6 @@ use axum::{
     extract::{Path, RawForm},
     http::HeaderMap,
     response::Html,
-    Extension,
 };
 use reqwest::{Client, StatusCode};
 
@@ -86,22 +81,13 @@ impl From<&HeaderMap> for SensorActions {
     }
 }
 
-pub async fn sensors(
-    Extension(pool): Extension<DbPool>,
-    token: Option<Token>,
-    headers: HeaderMap,
-) -> Result<Html<String>, ApiErrorResponse> {
-    let conn = into_api_err(pool.get().await, StatusCode::INTERNAL_SERVER_ERROR)?;
-    let current_user = into_api_err(
-        Token::get_valid_user(token, &conn).await,
+pub async fn sensors(req_data: RequestData) -> Result<Html<String>, ApiErrorResponse> {
+    let sensors = into_api_err(
+        req_data.conn.get_sensors().await,
         StatusCode::INTERNAL_SERVER_ERROR,
+        &req_data,
     )?;
-    let sensors = match current_user {
-        Some(_) => into_api_err(conn.get_sensors().await, StatusCode::INTERNAL_SERVER_ERROR)?,
-        None => vec![],
-    };
-
-    match is_hx_request(&headers) {
+    match req_data.is_hx_request {
         true => Ok(Html(
             SensorsInnerTemplate {
                 sensors,
@@ -113,7 +99,7 @@ pub async fn sensors(
         false => Ok(Html(
             SensorsTemplate {
                 sensors,
-                current_user,
+                current_user: req_data.user,
                 action_type: SensorActions::Overview,
             }
             .render()
@@ -123,29 +109,23 @@ pub async fn sensors(
 }
 
 pub async fn edit_sensor(
+    req_data: RequestData,
     Path(host): Path<String>,
-    headers: HeaderMap,
-    token: Option<Token>,
-    Extension(pool): Extension<DbPool>,
 ) -> Result<Html<String>, ApiErrorResponse> {
     let host = host.replace('-', ".");
-    let conn = into_api_err(pool.get().await, StatusCode::INTERNAL_SERVER_ERROR)?;
-    let current_user = into_api_err(
-        Token::get_valid_user(token, &conn).await,
-        StatusCode::INTERNAL_SERVER_ERROR,
-    )?;
     let sensor = into_api_err(
-        conn.get_sensor(&host).await,
+        req_data.conn.get_sensor(&host).await,
         StatusCode::INTERNAL_SERVER_ERROR,
+        &req_data,
     )?;
     let Some(sensor) = sensor else {
-        return api_err("Sensor not found", StatusCode::NOT_FOUND);
+        return api_err("Sensor not found", StatusCode::NOT_FOUND, &req_data);
     };
-    Ok(match is_hx_request(&headers) {
+    Ok(match req_data.is_hx_request {
         true => Html(SensorEditInnerTemplate { sensor }.render().unwrap()),
         false => Html(
             SensorEditTemplate {
-                current_user,
+                current_user: req_data.user,
                 sensor,
             }
             .render()
@@ -155,9 +135,8 @@ pub async fn edit_sensor(
 }
 
 pub async fn update_sensor(
+    req_data: RequestData,
     Path(host): Path<String>,
-    token: Option<Token>,
-    Extension(pool): Extension<DbPool>,
     form: RawForm,
 ) -> Result<Html<String>, ApiErrorResponse> {
     let sensor = match serde_urlencoded::from_bytes::<SensorFormData>(&form.0) {
@@ -166,35 +145,31 @@ pub async fn update_sensor(
             return api_err(
                 format!("Form decoding error: {}", e),
                 StatusCode::BAD_REQUEST,
+                &req_data,
             );
         }
     };
-    let conn = into_api_err(pool.get().await, StatusCode::INTERNAL_SERVER_ERROR)?;
-    let current_user = into_api_err(
-        Token::get_valid_user(token, &conn).await,
-        StatusCode::INTERNAL_SERVER_ERROR,
-    )?;
-    if current_user.is_none() {
-        return api_err("Unauthorized", StatusCode::UNAUTHORIZED);
-    }
     let host = host.replace('-', ".");
     let sensor_entity = into_api_err(
-        conn.get_sensor(&host).await,
+        req_data.conn.get_sensor(&host).await,
         StatusCode::INTERNAL_SERVER_ERROR,
+        &req_data,
     )?;
     let Some(sensor_entity) = sensor_entity else {
-        return api_err("Sensor not found", StatusCode::NOT_FOUND);
+        return api_err("Sensor not found", StatusCode::NOT_FOUND, &req_data);
     };
     let Some(pair_id) = &sensor_entity.pair_id else {
-        return api_err("Sensor not found", StatusCode::NOT_FOUND);
+        return api_err("Sensor not found", StatusCode::NOT_FOUND, &req_data);
     };
     let sensor = into_api_err(
         Client::new().update_sensor(&host, pair_id, sensor).await,
         StatusCode::INTERNAL_SERVER_ERROR,
+        &req_data,
     )?;
     into_api_err(
-        conn.update_sensor(&host, sensor).await,
+        req_data.conn.update_sensor(&host, sensor).await,
         StatusCode::INTERNAL_SERVER_ERROR,
+        &req_data,
     )?;
     Ok(Html(
         AlertTemplate {
@@ -207,22 +182,26 @@ pub async fn update_sensor(
 }
 
 pub async fn delete_sensor(
+    req_data: RequestData,
     Path(host): Path<String>,
-    Extension(pool): Extension<DbPool>,
 ) -> Result<Html<String>, ApiErrorResponse> {
     let host = host.replace('-', ".");
-    let conn = into_api_err(pool.get().await, StatusCode::INTERNAL_SERVER_ERROR)?;
     let affected = into_api_err(
-        conn.delete_sensor(&host).await,
+        req_data.conn.delete_sensor(&host).await,
         StatusCode::INTERNAL_SERVER_ERROR,
+        &req_data,
     )?;
     if affected == 0 {
-        return api_err("Sensor not found", StatusCode::NOT_FOUND);
+        return api_err("Sensor not found", StatusCode::NOT_FOUND, &req_data);
     }
 
     Ok(Html(
         SensorsInnerTemplate {
-            sensors: into_api_err(conn.get_sensors().await, StatusCode::INTERNAL_SERVER_ERROR)?,
+            sensors: into_api_err(
+                req_data.conn.get_sensors().await,
+                StatusCode::INTERNAL_SERVER_ERROR,
+                &req_data,
+            )?,
             action_type: SensorActions::Overview,
         }
         .render()

@@ -1,21 +1,18 @@
-use std::{collections::BTreeMap, sync::Arc};
-
 use crate::{
-    database::{data_schedule::DataScheduleDatabase, DbPool},
+    database::data_schedule::DataScheduleDatabase,
     into_api_err,
     models::{
-        auth::Token,
         db::{DataScheduleEntry, SensorFeatures},
         json::ScheduleEntryFormData,
-        User,
+        RequestData, User,
     },
     services::sensor_data_service::SensorDataService,
-    website::is_hx_request,
     ApiErrorResponse,
 };
 use askama::Template;
-use axum::{extract::Query, http::HeaderMap, response::Html, Extension, Form};
+use axum::{extract::Query, response::Html, Extension, Form};
 use reqwest::StatusCode;
+use std::{collections::BTreeMap, sync::Arc};
 use tokio::sync::Mutex;
 
 #[derive(Template)]
@@ -39,20 +36,14 @@ pub fn delete_query(entry: &DataScheduleEntry) -> String {
     )
 }
 
-pub async fn data_schedule(
-    Extension(pool): Extension<DbPool>,
-    token: Option<Token>,
-    headers: HeaderMap,
-) -> Result<Html<String>, ApiErrorResponse> {
-    let conn = into_api_err(pool.get().await, StatusCode::INTERNAL_SERVER_ERROR)?;
-    let current_user = into_api_err(
-        Token::get_valid_user(token, &conn).await,
+pub async fn data_schedule(req_data: RequestData) -> Result<Html<String>, ApiErrorResponse> {
+    let schedule = into_api_err(
+        req_data.conn.get_schedule().await,
         StatusCode::INTERNAL_SERVER_ERROR,
+        &req_data,
     )?;
 
-    let schedule = into_api_err(conn.get_schedule().await, StatusCode::INTERNAL_SERVER_ERROR)?;
-
-    if is_hx_request(&headers) {
+    if req_data.is_hx_request {
         return Ok(Html(
             DataScheduleInnerTemplate { schedule }.render().unwrap(),
         ));
@@ -60,7 +51,7 @@ pub async fn data_schedule(
 
     Ok(Html(
         DataScheduleTemplate {
-            current_user: current_user.clone(),
+            current_user: req_data.user,
             schedule,
         }
         .render()
@@ -69,20 +60,28 @@ pub async fn data_schedule(
 }
 
 pub async fn create_schedule_entry(
-    Extension(pool): Extension<DbPool>,
+    req_data: RequestData,
     Extension(data_service): Extension<Arc<Mutex<SensorDataService>>>,
     Form(schedule_entry): Form<ScheduleEntryFormData>,
 ) -> Result<Html<String>, ApiErrorResponse> {
-    let conn = into_api_err(pool.get().await, StatusCode::INTERNAL_SERVER_ERROR)?;
-    let entry = into_api_err(schedule_entry.try_into(), StatusCode::BAD_REQUEST)?;
+    let entry = into_api_err(
+        schedule_entry.try_into(),
+        StatusCode::BAD_REQUEST,
+        &req_data,
+    )?;
     let new_entry = into_api_err(
-        conn.create_entry(entry).await,
+        req_data.conn.create_entry(entry).await,
         StatusCode::INTERNAL_SERVER_ERROR,
+        &req_data,
     )?;
     if new_entry.is_some() {
         _ = data_service.lock().await.restart().await;
     }
-    let schedule = into_api_err(conn.get_schedule().await, StatusCode::INTERNAL_SERVER_ERROR)?;
+    let schedule = into_api_err(
+        req_data.conn.get_schedule().await,
+        StatusCode::INTERNAL_SERVER_ERROR,
+        &req_data,
+    )?;
 
     Ok(Html(
         DataScheduleInnerTemplate { schedule }.render().unwrap(),
@@ -90,11 +89,10 @@ pub async fn create_schedule_entry(
 }
 
 pub async fn delete_schedule_entry(
+    req_data: RequestData,
     Query(query): Query<BTreeMap<String, String>>,
-    Extension(pool): Extension<DbPool>,
     Extension(data_service): Extension<Arc<Mutex<SensorDataService>>>,
 ) -> Result<Html<String>, ApiErrorResponse> {
-    let conn = into_api_err(pool.get().await, StatusCode::INTERNAL_SERVER_ERROR)?;
     let entry = into_api_err(
         query
             .get("features")
@@ -112,17 +110,23 @@ pub async fn delete_schedule_entry(
                     })
             }),
         StatusCode::BAD_REQUEST,
+        &req_data,
     )?;
     let success = into_api_err(
-        conn.delete_entry(entry).await,
+        req_data.conn.delete_entry(entry).await,
         StatusCode::INTERNAL_SERVER_ERROR,
+        &req_data,
     )?;
 
     if success {
         _ = data_service.lock().await.restart().await;
     }
 
-    let schedule = into_api_err(conn.get_schedule().await, StatusCode::INTERNAL_SERVER_ERROR)?;
+    let schedule = into_api_err(
+        req_data.conn.get_schedule().await,
+        StatusCode::INTERNAL_SERVER_ERROR,
+        &req_data,
+    )?;
 
     Ok(Html(
         DataScheduleInnerTemplate { schedule }.render().unwrap(),
