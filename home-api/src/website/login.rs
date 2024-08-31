@@ -1,15 +1,15 @@
 use crate::{
     api_err,
-    database::{user_sessions::UserSessionDatabase, users::UserDatabase, DbPool},
+    database::{user_sessions::UserSessionDatabase, users::UserDatabase},
     into_api_err,
     models::{
         auth::{Claims, Token},
-        NormalizedString, User,
+        NormalizedString, RequestData, User,
     },
     ApiErrorResponse,
 };
 use askama::Template;
-use axum::{http::HeaderMap, response::Html, Extension, Form};
+use axum::{http::HeaderMap, response::Html, Form};
 use reqwest::{header::SET_COOKIE, StatusCode};
 use serde::Deserialize;
 
@@ -23,19 +23,13 @@ pub struct LoginTemplate {
 #[template(path = "pages/login-inner.html")]
 pub struct LoginInnerTemplate;
 
-pub async fn login_page(
-    token: Option<Token>,
-    Extension(pool): Extension<DbPool>,
-) -> Result<Html<String>, ApiErrorResponse> {
-    let conn = into_api_err(pool.get().await, StatusCode::INTERNAL_SERVER_ERROR)?;
-    let current_user = into_api_err(
-        Token::get_valid_user(token, &conn).await,
-        StatusCode::INTERNAL_SERVER_ERROR,
-    )?;
-
+pub async fn login_page(req_data: RequestData) -> Result<Html<String>, ApiErrorResponse> {
+    if req_data.is_hx_request {
+        return Ok(Html(LoginInnerTemplate.render().unwrap()));
+    }
     Ok(Html(
         LoginTemplate {
-            current_user: current_user.clone(),
+            current_user: req_data.user,
         }
         .render()
         .unwrap(),
@@ -49,26 +43,41 @@ pub struct Credentials {
 }
 
 pub async fn login(
-    Extension(pool): Extension<DbPool>,
+    req_data: RequestData,
     Form(credentials): Form<Credentials>,
 ) -> Result<(StatusCode, HeaderMap), ApiErrorResponse> {
-    let conn = into_api_err(pool.get().await, StatusCode::INTERNAL_SERVER_ERROR)?;
     let user = into_api_err(
-        conn.get_user(&credentials.username).await,
+        req_data.conn.get_user(&credentials.username).await,
         StatusCode::INTERNAL_SERVER_ERROR,
+        &req_data,
     )?;
     let Some(user) = user else {
-        return api_err("Invalid username or password", StatusCode::UNAUTHORIZED);
+        return api_err(
+            "Invalid username or password",
+            StatusCode::UNAUTHORIZED,
+            &req_data,
+        );
     };
     if !user.password.verify(&credentials.password) {
-        return api_err("Invalid username or password", StatusCode::UNAUTHORIZED);
+        return api_err(
+            "Invalid username or password",
+            StatusCode::UNAUTHORIZED,
+            &req_data,
+        );
     }
 
-    let token = into_api_err(Token::new(&user), StatusCode::INTERNAL_SERVER_ERROR)?;
+    let token = into_api_err(
+        Token::new(&user),
+        StatusCode::INTERNAL_SERVER_ERROR,
+        &req_data,
+    )?;
     into_api_err(
-        conn.create_session(user.normalized_name.clone(), token.clone())
+        req_data
+            .conn
+            .create_session(user.normalized_name.clone(), token.clone())
             .await,
         StatusCode::INTERNAL_SERVER_ERROR,
+        &req_data,
     )?;
     let mut header_map = HeaderMap::new();
     header_map.insert(SET_COOKIE, format!("session={}", *token).parse().unwrap());
@@ -76,21 +85,20 @@ pub async fn login(
     Ok((StatusCode::OK, header_map))
 }
 
-pub async fn logout(
-    Extension(pool): Extension<DbPool>,
-    headers: HeaderMap,
-) -> Result<(StatusCode, HeaderMap), ApiErrorResponse> {
-    let Ok(token) = Token::try_from(&headers) else {
-        return api_err("No session cookie", StatusCode::UNAUTHORIZED);
+pub async fn logout(req_data: RequestData) -> Result<(StatusCode, HeaderMap), ApiErrorResponse> {
+    let Some(token) = &req_data.token else {
+        return api_err("No session cookie", StatusCode::UNAUTHORIZED, &req_data);
     };
-    let Ok(claims): Result<Claims, _> = (&token).try_into() else {
-        return api_err("Invalid session", StatusCode::UNAUTHORIZED);
+    let Ok(claims): Result<Claims, _> = token.try_into() else {
+        return api_err("Invalid session", StatusCode::UNAUTHORIZED, &req_data);
     };
-    let conn = into_api_err(pool.get().await, StatusCode::INTERNAL_SERVER_ERROR)?;
     into_api_err(
-        conn.delete_session(NormalizedString::new(claims.sub), token)
+        req_data
+            .conn
+            .delete_session(NormalizedString::new(claims.sub), token.clone())
             .await,
         StatusCode::INTERNAL_SERVER_ERROR,
+        &req_data,
     )?;
     let mut header_map = HeaderMap::new();
     header_map.insert(SET_COOKIE, "session=;".parse().unwrap());

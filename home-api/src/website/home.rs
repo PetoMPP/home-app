@@ -1,14 +1,9 @@
 use crate::{
-    database::DbPool,
-    into_api_err,
-    models::{auth::Token, User},
+    models::{RequestData, User},
     ApiErrorResponse,
 };
 use askama::Template;
-use axum::{http::HeaderMap, response::Html, Extension};
-use reqwest::StatusCode;
-
-use super::is_hx_request;
+use axum::response::Html;
 
 #[derive(Template)]
 #[template(path = "pages/home.html")]
@@ -20,24 +15,14 @@ pub struct HomeTemplate {
 #[template(path = "pages/home-inner.html")]
 pub struct HomeInnerTemplate;
 
-pub async fn home(
-    Extension(pool): Extension<DbPool>,
-    token: Option<Token>,
-    headers: HeaderMap,
-) -> Result<Html<String>, ApiErrorResponse> {
-    let conn = into_api_err(pool.get().await, StatusCode::INTERNAL_SERVER_ERROR)?;
-    let current_user = into_api_err(
-        Token::get_valid_user(token, &conn).await,
-        StatusCode::INTERNAL_SERVER_ERROR,
-    )?;
-
-    if is_hx_request(&headers) {
+pub async fn home(req_data: RequestData) -> Result<Html<String>, ApiErrorResponse> {
+    if req_data.is_hx_request {
         return Ok(Html(HomeInnerTemplate.render().unwrap()));
     }
 
     Ok(Html(
         HomeTemplate {
-            current_user: current_user.clone(),
+            current_user: req_data.user,
         }
         .render()
         .unwrap(),
