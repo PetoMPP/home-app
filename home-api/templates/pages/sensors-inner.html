@@ -1,6 +1,6 @@
 <h1 class="page-title">Sensors management</h1>
 <p class="text-xl">Here are the sensors available:</p>
-<div class="flex gap-6 mt-4">
+<div class="flex flex-wrap lg:flex-nowrap gap-6 mt-4">
     {% for sensor in sensors %}
     <div class="lg:w-1/2 lg:grow">
         {% include "components/sensor.html" %}

@@ -25,7 +25,7 @@
         {% endmatch %}
     </div>
     {% let sensors = state.scanned().clone() %}
-    <div class="flex gap-6 mt-4">
+    <div class="flex flex-wrap lg:flex-nowrap gap-6 mt-4">
         {% for sensor in sensors %}
         <div class="lg:w-1/2 lg:grow">
             {% include "components/sensor.html" %}
