@@ -1,0 +1,94 @@
+<div class="flex flex-col gap-4">
+    <div class="flex flex-row gap-2 items-center flex-wrap">
+        <button class="btn btn-sm btn-primary animate-none {% if sensor.is_none() %}btn-active{% endif %}"
+            hx-get="/areas/{{area.id}}/chart?feature={{feature}}&last={{last}}"
+            hx-target="#area-chart-{{area.id}}" hx-on::before-request="Chart.getChart('area-chart-canvas-{{area.id}}')?.destroy();">All sensors</button>
+        {% for area_sensor in area.sensors %}
+        {% if let Some(sensor) = sensor %}
+        <button class="btn btn-sm btn-primary animate-none {% if area_sensor.host == sensor.host %}btn-active{% endif %}"
+        {% else %}
+        <button class="btn btn-sm btn-primary animate-none"
+        {% endif %}
+            hx-get="/areas/{{area.id}}/chart?feature={{feature}}&sensor={{area_sensor.host.replace(".", "-")}}&last={{last}}"
+            hx-target="#area-chart-{{area.id}}" hx-on::before-request="Chart.getChart('area-chart-canvas-{{area.id}}')?.destroy();">{{area_sensor.name}}</button>
+        {% endfor %}
+    </div>
+    <div class="flex flex-row gap-2 items-center flex-wrap">
+        {% if let Some(sensor) = sensor %}
+        <button class="btn btn-sm btn-primary animate-none {% if last == 1 %}btn-active{% endif %}"
+            hx-get="/areas/{{area.id}}/chart?feature={{feature}}&sensor={{sensor.host.replace(".", "-")}}&last=1"
+            hx-target="#area-chart-{{area.id}}" hx-on::before-request="Chart.getChart('area-chart-canvas-{{area.id}}')?.destroy();">Last 24 hours</button>
+        <button class="btn btn-sm btn-primary animate-none {% if last == 7 %}btn-active{% endif %}"
+            hx-get="/areas/{{area.id}}/chart?feature={{feature}}&sensor={{sensor.host.replace(".", "-")}}&last=7"
+            hx-target="#area-chart-{{area.id}}" hx-on::before-request="Chart.getChart('area-chart-canvas-{{area.id}}')?.destroy();">Last 7 days</button>
+        <button class="btn btn-sm btn-primary animate-none {% if last == 30 %}btn-active{% endif %}"
+            hx-get="/areas/{{area.id}}/chart?feature={{feature}}&sensor={{sensor.host.replace(".", "-")}}&last=30"
+            hx-target="#area-chart-{{area.id}}" hx-on::before-request="Chart.getChart('area-chart-canvas-{{area.id}}')?.destroy();">Last 30 days</button>
+        {% else %}
+        <button class="btn btn-sm btn-primary animate-none {% if last == 1 %}btn-active{% endif %}"
+            hx-get="/areas/{{area.id}}/chart?feature={{feature}}&last=1"
+            hx-target="#area-chart-{{area.id}}" hx-on::before-request="Chart.getChart('area-chart-canvas-{{area.id}}')?.destroy();">Last 24 hours</button>
+        <button class="btn btn-sm btn-primary animate-none {% if last == 7 %}btn-active{% endif %}"
+            hx-get="/areas/{{area.id}}/chart?feature={{feature}}&last=7"
+            hx-target="#area-chart-{{area.id}}" hx-on::before-request="Chart.getChart('area-chart-canvas-{{area.id}}')?.destroy();">Last 7 days</button>
+        <button class="btn btn-sm btn-primary animate-none {% if last == 30 %}btn-active{% endif %}"
+            hx-get="/areas/{{area.id}}/chart?feature={{feature}}&last=30"
+            hx-target="#area-chart-{{area.id}}" hx-on::before-request="Chart.getChart('area-chart-canvas-{{area.id}}')?.destroy();">Last 30 days</button>
+        {% endif %}
+    </div>
+</div>
+<canvas id="area-chart-canvas-{{area.id}}"></canvas>
+<script id="area-chart-script-{{area.id}}">
+    var canvas = document.getElementById('area-chart-canvas-{{area.id}}');
+    new Chart(canvas, {
+        type: '{{chart._type|safe}}',
+        data: {
+            labels: {{chart.labels|safe}},
+            datasets: [
+            {% for (i, data) in chart.data.iter().enumerate() %}
+                {
+                    label: '{{data.label|safe}}',
+                    data: {{data.data|safe}},
+                    fill: false,
+                    yAxisID: 'y{{i + 1}}',
+                    pointStyle: false,
+                    borderColor: '{{data.color|safe}}',
+                    backgroundColor: '{{data.color|safe}}',
+                    tension: 0.15
+                },
+            {% endfor %}
+            ],
+        },
+        options: {
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            stacked: false,
+            scales: {
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    min: {{chart.data[0].min}},
+                    max: {{chart.data[0].max}},
+                    grid: {
+                        color: '{{chart.data[0].grid_color|safe}}',
+                    }
+                },
+                y2: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    min: {{chart.data[1].min}},
+                    max: {{chart.data[1].max}},
+                    grid: {
+                        color: '{{chart.data[1].grid_color|safe}}',
+                    }
+                },
+            },
+        }
+    });
+    document.getElementById('area-{{area.id}}').scrollIntoView();
+
+</script>

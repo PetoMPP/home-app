@@ -4,9 +4,10 @@ use crate::models::db::TempDataEntry;
 pub trait TempDataDatabase {
     async fn get_temp_data(
         &self,
-        host: Option<impl Into<String>>,
+        host: Option<Vec<impl Into<String>>>,
         limit: Option<usize>,
         offset: Option<usize>,
+        after: Option<i64>,
     ) -> Result<Vec<TempDataEntry>, anyhow::Error>;
     async fn create_temp_data_batch(
         &self,
@@ -17,15 +18,31 @@ pub trait TempDataDatabase {
 impl TempDataDatabase for DbConn {
     async fn get_temp_data(
         &self,
-        host: Option<impl Into<String>>,
+        host: Option<Vec<impl Into<String>>>,
         limit: Option<usize>,
         offset: Option<usize>,
+        after: Option<i64>,
     ) -> Result<Vec<TempDataEntry>, anyhow::Error> {
         let mut query = String::from("SELECT * FROM sensor_temp_data");
         if let Some(host) = host {
-            query.push_str(" WHERE host = '");
-            query.push_str(&host.into());
-            query.push('\'');
+            query.push_str(" WHERE host IN ('");
+            query.push_str(
+                host.into_iter()
+                    .map(Into::into)
+                    .collect::<Vec<_>>()
+                    .join("', '")
+                    .as_str(),
+            );
+            query.push_str("')");
+            if let Some(after) = after {
+                query.push_str(" AND timestamp > ");
+                query.push_str(&after.to_string());
+            }
+        } else {
+            if let Some(after) = after {
+                query.push_str(" WHERE timestamp > ");
+                query.push_str(&after.to_string());
+            }
         }
         query.push_str(" ORDER BY timestamp DESC");
         if let Some(limit) = limit {
