@@ -5,11 +5,12 @@
         {% when ScannerState::Idle with (result)%}
         {% match result %}
         {% when Some with (result) %}
-        <p>Sensor data fetched at <time timestamp>{{result.created.timestamp()}}</time> in <time duration>{{result.duration.num_milliseconds()}}</time>.</p>
+        <p>Sensor data fetched at <time timestamp>{{result.created.timestamp()}}</time> in <time
+                duration>{{result.duration.num_milliseconds()}}</time>.</p>
         {% when None %}
         <p>No sensor data fetched yet</p>
         {% endmatch %}
-        <a class="btn btn-primary self-end" hx-post="/scan" hx-trigger="click" hx-swap="innerHTML"
+        <a class="btn btn-primary self-start" hx-post="/scan" hx-trigger="click" hx-swap="innerHTML"
             hx-target="#scanner-inner">
             Scan now!
         </a>
@@ -24,7 +25,11 @@
         {% endmatch %}
     </div>
     {% let sensors = state.scanned().clone() %}
-    {% for sensor in sensors %}
-    {% include "components/sensor.html" %}
-    {% endfor %}
+    <div class="flex gap-6 mt-4">
+        {% for sensor in sensors %}
+        <div class="lg:w-1/2 lg:grow">
+            {% include "components/sensor.html" %}
+        </div>
+        {% endfor %}
+    </div>
 </div>

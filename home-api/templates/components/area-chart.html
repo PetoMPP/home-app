@@ -1,3 +1,4 @@
+{% if !no_control %}
 <div class="flex flex-col gap-4">
     <div class="flex flex-row gap-2 items-center flex-wrap">
         <button class="btn btn-sm btn-primary animate-none {% if sensor.is_none() %}btn-active{% endif %}"
@@ -37,6 +38,7 @@
         {% endif %}
     </div>
 </div>
+{% endif %}
 <canvas id="area-chart-canvas-{{area.id}}"></canvas>
 <script id="area-chart-script-{{area.id}}">
     var canvas = document.getElementById('area-chart-canvas-{{area.id}}');

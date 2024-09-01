@@ -44,6 +44,7 @@ pub struct AreaChartTemplate {
     pub feature: String,
     pub sensor: Option<SensorEntity>,
     pub last: usize,
+    pub no_control: bool,
     pub chart: Chart,
 }
 
@@ -187,6 +188,8 @@ pub struct AreaChartQuery {
     feature: Option<String>,
     last: Option<usize>,
     sensor: Option<String>,
+    #[serde(rename = "no-control")]
+    no_control: Option<String>,
 }
 
 pub async fn area_chart(
@@ -198,6 +201,7 @@ pub async fn area_chart(
         feature,
         last,
         sensor,
+        no_control,
     } = feature;
     match feature.as_deref() {
         Some("temp") => {
@@ -303,6 +307,7 @@ pub async fn area_chart(
                     feature: "temp".to_string(),
                     chart,
                     last,
+                    no_control: no_control.is_some(),
                     sensor,
                 }
                 .render()
