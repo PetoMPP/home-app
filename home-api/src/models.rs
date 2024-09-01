@@ -87,7 +87,7 @@ impl Area {
             .iter()
             .flat_map(|s| s.features.iter())
             .collect::<Vec<_>>();
-        features.sort_by(|a, b| a.bits().cmp(&b.bits()));
+        features.sort_by_key(|a| a.bits());
         features
     }
 }

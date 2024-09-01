@@ -15,7 +15,8 @@ use crate::{
 use askama::Template;
 use axum::{
     extract::{
-        ws::{Message, WebSocket}, ConnectInfo, Path, State, WebSocketUpgrade
+        ws::{Message, WebSocket},
+        ConnectInfo, Path, State, WebSocketUpgrade,
     },
     response::{Html, IntoResponse},
     Extension,
