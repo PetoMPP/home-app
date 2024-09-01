@@ -12,10 +12,9 @@ pub trait AreaDatabase {
 
 impl AreaDatabase for DbConn {
     async fn get_area_entities(&self) -> Result<Vec<AreaEntity>, anyhow::Error> {
-        Ok(self
-            .query::<AreaEntity>("SELECT rowid, name FROM areas")
+        self.query::<AreaEntity>("SELECT rowid, name FROM areas")
             .await
-            .map_err(|e| anyhow::anyhow!("{}", e))?)
+            .map_err(|e| anyhow::anyhow!("{}", e))
     }
 
     async fn get_areas(&self) -> Result<Vec<Area>, anyhow::Error> {
@@ -50,25 +49,23 @@ impl AreaDatabase for DbConn {
     }
 
     async fn create_area(&self, area: AreaEntity) -> Result<AreaEntity, anyhow::Error> {
-        Ok(self
-            .query_single::<AreaEntity>(&format!(
-                "INSERT INTO areas (name) VALUES ('{}') RETURNING rowid, name",
-                area.name
-            ))
-            .await
-            .map_err(|e| anyhow::anyhow!("{}", e))?
-            .ok_or(anyhow::anyhow!("No area created"))?)
+        self.query_single::<AreaEntity>(&format!(
+            "INSERT INTO areas (name) VALUES ('{}') RETURNING rowid, name",
+            area.name
+        ))
+        .await
+        .map_err(|e| anyhow::anyhow!("{}", e))?
+        .ok_or(anyhow::anyhow!("No area created"))
     }
 
     async fn update_area(&self, area: AreaEntity) -> Result<AreaEntity, anyhow::Error> {
-        Ok(self
-            .query_single::<AreaEntity>(&format!(
-                "UPDATE areas SET name = '{}' WHERE rowid = {} RETURNING rowid, name",
-                area.name, area.id
-            ))
-            .await
-            .map_err(|e| anyhow::anyhow!("{}", e))?
-            .ok_or(anyhow::anyhow!("No area updated"))?)
+        self.query_single::<AreaEntity>(&format!(
+            "UPDATE areas SET name = '{}' WHERE rowid = {} RETURNING rowid, name",
+            area.name, area.id
+        ))
+        .await
+        .map_err(|e| anyhow::anyhow!("{}", e))?
+        .ok_or(anyhow::anyhow!("No area updated"))
     }
 
     async fn delete_area(&self, id: i64) -> Result<bool, anyhow::Error> {

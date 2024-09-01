@@ -58,11 +58,11 @@ impl SensorDatabase for DbConn {
         &self,
         area_id: i64,
     ) -> Result<Vec<SensorEntity>, anyhow::Error> {
-        Ok(self.query::<SensorEntity>(&format!(
+        self.query::<SensorEntity>(&format!(
             "SELECT * FROM sensors LEFT JOIN areas ON sensors.area_id = areas.rowid WHERE sensors.area_id = {}",
             area_id
         ))
-        .await.map_err(|e| anyhow::anyhow!("{}", e))?)
+        .await.map_err(|e| anyhow::anyhow!("{}", e))
     }
 
     async fn create_sensor(
