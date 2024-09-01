@@ -105,6 +105,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             delete(website::data::schedule::delete_schedule_entry),
         )
         .route("/areas", get(website::areas::areas))
+        .route("/areas", put(website::areas::create_area))
+        .route("/areas/:id", delete(website::areas::delete_area))
+        .route("/areas/:id", post(website::areas::update_area))
         .route("/logout", post(website::login::logout))
         .layer(middleware::from_fn_with_state(pool.clone(), auth))
         .route("/login", get(website::login::login_page))

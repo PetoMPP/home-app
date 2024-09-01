@@ -109,6 +109,8 @@ pub mod json {
     #[derive(Serialize, Deserialize, Debug, Default, Clone)]
     pub struct SensorFormData {
         pub name: String,
+        #[serde(rename = "area-id")]
+        pub area_id: String,
         #[serde(rename = "features-temp")]
         pub features_temp: Option<String>,
         #[serde(rename = "features-motion")]
@@ -206,6 +208,11 @@ pub mod json {
                 interval_ms,
             })
         }
+    }
+
+    #[derive(Debug, Default, Serialize, Deserialize, Clone)]
+    pub struct AreaFormData {
+        pub name: String,
     }
 }
 
@@ -526,10 +533,13 @@ pub mod db {
         fn from_row(row: &rusqlite::Row) -> rusqlite::Result<Self> {
             Ok(SensorEntity {
                 name: row.get::<_, String>(0)?,
-                area: None,
-                features: SensorFeatures::from_bits_retain(row.get::<_, i64>(1)? as u32),
-                host: row.get::<_, String>(2)?,
-                pair_id: row.get::<_, Option<String>>(3)?,
+                area: row
+                    .get::<_, Option<i64>>(1)?
+                    .and_then(|id| row.get::<_, String>(6).ok().map(|name| (id, name)))
+                    .map(|(id, name)| AreaEntity { id, name }),
+                features: SensorFeatures::from_bits_retain(row.get::<_, i64>(2)? as u32),
+                host: row.get::<_, String>(3)?,
+                pair_id: row.get::<_, Option<String>>(4)?,
             })
         }
     }
@@ -583,5 +593,14 @@ pub mod db {
     pub struct AreaEntity {
         pub id: i64,
         pub name: String,
+    }
+
+    impl FromRow for AreaEntity {
+        fn from_row(row: &rusqlite::Row) -> rusqlite::Result<Self> {
+            Ok(AreaEntity {
+                id: row.get::<_, i64>(0)?,
+                name: row.get::<_, String>(1)?,
+            })
+        }
     }
 }

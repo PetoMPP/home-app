@@ -1,7 +1,37 @@
 <h1 class="page-title">Areas overview</h1>
-<p class="text-xl">Here are the areas available:</p>
+<p class="text-xl pb-4">Here are the areas available:</p>
+<button id="new-area-btn" class="btn btn-primary self-end" onclick="toggleNewArea();">Create a new area</button>
+<div class="hidden card card-compact w-80 shadow-lg rounded-xl border-2 bg-base-300 border-base-content" id="new-area">
+    <div class="card-body relative">
+        <h2 class="card-title">
+            <form id="new-area-form" class="flex gap-4 p-4" hx-put="/areas" hx-target="#page-content">
+                <label class="input input-sm input-bordered flex items-center gap-2">
+                    Name
+                    <input class="grow" name="name" />
+                </label>
+            </form>
+        </h2>
+        <div class="card-actions justify-end">
+            <button class="btn btn-sm btn-primary" form="new-area-form">Create</button>
+            <button class="btn btn-sm btn-error" onclick="toggleNewArea();">Cancel</button>
+        </div>
+    </div>
+</div>
 <div class="flex flex-wrap gap-6 w-full justify-center mt-4">
     {% for area in areas %}
     {% include "components/area.html" %}
     {% endfor %}
 </div>
+
+<script>
+    function toggleNewArea() {
+        document.getElementById('new-area').classList.toggle('hidden');
+        document.getElementById('new-area-btn').classList.toggle('hidden');
+    }
+    function toggleAreaEdit(id) {
+        document.getElementById(`area-edit-form-${id}`).classList.toggle('hidden');
+        document.getElementById(`area-edit-p-${id}`).classList.toggle('hidden');
+        document.getElementById(`area-delete-btn-${id}`).classList.toggle('hidden');
+        document.getElementById(`area-actions-${id}`).classList.toggle('hidden');
+    }
+</script>
