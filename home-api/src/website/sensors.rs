@@ -1,10 +1,10 @@
 use super::components::alert::{AlertTemplate, AlertType};
 use crate::{
     api_err,
-    database::sensors::SensorDatabase,
+    database::{areas::AreaDatabase, sensors::SensorDatabase},
     into_api_err,
     models::{
-        db::{SensorEntity, SensorFeatures},
+        db::{AreaEntity, SensorEntity, SensorFeatures},
         json::SensorFormData,
         RequestData, User,
     },
@@ -54,12 +54,14 @@ pub fn sensor_style(sensor: &SensorEntity) -> &'static str {
 pub struct SensorEditTemplate {
     pub current_user: Option<User>,
     pub sensor: SensorEntity,
+    pub areas: Vec<(AreaEntity, bool)>,
 }
 
 #[derive(Template, Default)]
 #[template(path = "pages/sensor-edit-inner.html")]
 pub struct SensorEditInnerTemplate {
     pub sensor: SensorEntity,
+    pub areas: Vec<(AreaEntity, bool)>,
 }
 
 pub enum SensorActions {
@@ -121,12 +123,24 @@ pub async fn edit_sensor(
     let Some(sensor) = sensor else {
         return api_err("Sensor not found", StatusCode::NOT_FOUND, &req_data);
     };
+    let areas = into_api_err(
+        req_data.conn.get_area_entities().await,
+        StatusCode::INTERNAL_SERVER_ERROR,
+        &req_data,
+    )?
+    .into_iter()
+    .map(|a| {
+        let id = a.id;
+        (a, sensor.area.as_ref().map(|a| a.id) == Some(id))
+    })
+    .collect();
     Ok(match req_data.is_hx_request {
-        true => Html(SensorEditInnerTemplate { sensor }.render().unwrap()),
+        true => Html(SensorEditInnerTemplate { sensor, areas }.render().unwrap()),
         false => Html(
             SensorEditTemplate {
                 current_user: req_data.user,
                 sensor,
+                areas,
             }
             .render()
             .unwrap(),
@@ -161,13 +175,30 @@ pub async fn update_sensor(
     let Some(pair_id) = &sensor_entity.pair_id else {
         return api_err("Sensor not found", StatusCode::NOT_FOUND, &req_data);
     };
-    let sensor = into_api_err(
-        Client::new().update_sensor(&host, pair_id, sensor).await,
+    let sensor_response = into_api_err(
+        Client::new()
+            .update_sensor(&host, pair_id, sensor.clone())
+            .await,
         StatusCode::INTERNAL_SERVER_ERROR,
         &req_data,
     )?;
     into_api_err(
-        req_data.conn.update_sensor(&host, sensor).await,
+        req_data
+            .conn
+            .update_sensor(
+                &host,
+                SensorEntity {
+                    host: host.clone(),
+                    pair_id: None,
+                    name: sensor_response.name.clone(),
+                    area: sensor.area_id.clone().parse().ok().map(|id| AreaEntity {
+                        id,
+                        name: String::new(),
+                    }),
+                    features: SensorFeatures::from_bits_retain(sensor_response.features),
+                },
+            )
+            .await,
         StatusCode::INTERNAL_SERVER_ERROR,
         &req_data,
     )?;

@@ -1,12 +1,17 @@
 use crate::{
+    api_err,
+    database::areas::AreaDatabase,
+    into_api_err,
     models::{
-        db::{SensorEntity, SensorFeatures},
+        db::{AreaEntity, SensorFeatures},
+        json::AreaFormData,
         Area, RequestData, User,
     },
     ApiErrorResponse,
 };
 use askama::Template;
-use axum::response::Html;
+use axum::{extract::Path, response::Html, Form};
+use reqwest::StatusCode;
 
 #[derive(Template)]
 #[template(path = "pages/areas.html")]
@@ -21,57 +26,118 @@ pub struct AreasInnerTemplate {
     pub areas: Vec<Area>,
 }
 
-pub async fn areas(req_data: RequestData) -> Result<Html<String>, ApiErrorResponse> {
-    let areas = vec![
-        Area {
-            id: 1,
-            name: "Area 1".to_string(),
-            sensors: vec![
-                SensorEntity {
-                    name: "Sensor 1".to_string(),
-                    area: None,
-                    features: SensorFeatures::TEMPERATURE | SensorFeatures::MOTION,
-                    host: "11.44.21.1".to_string(),
-                    pair_id: None,
-                },
-                SensorEntity {
-                    name: "Sensor 2".to_string(),
-                    area: None,
-                    features: SensorFeatures::TEMPERATURE | SensorFeatures::MOTION,
-                    host: "12.44.21.1".to_string(),
-                    pair_id: None,
-                },
-            ],
-        },
-        Area {
-            id: 2,
-            name: "Area 2".to_string(),
-            sensors: vec![
-                SensorEntity {
-                    name: "Sensor 3".to_string(),
-                    area: None,
-                    features: SensorFeatures::TEMPERATURE | SensorFeatures::MOTION,
-                    host: "13.44.21.1".to_string(),
-                    pair_id: None,
-                },
-                SensorEntity {
-                    name: "Sensor 4".to_string(),
-                    area: None,
-                    features: SensorFeatures::TEMPERATURE,
-                    host: "4+656+54".to_string(),
-                    pair_id: None,
-                },
-                SensorEntity {
-                    name: "Sensor 5".to_string(),
-                    area: None,
-                    features: SensorFeatures::from_bits_retain(0b11111),
-                    host: "4+656+54".to_string(),
-                    pair_id: None,
-                },
-            ],
-        },
-    ];
+#[derive(Template)]
+#[template(path = "components/area.html")]
+pub struct AreaTemplate {
+    pub area: Area,
+}
 
+pub async fn areas(req_data: RequestData) -> Result<Html<String>, ApiErrorResponse> {
+    let areas = into_api_err(
+        req_data.conn.get_areas().await,
+        StatusCode::INTERNAL_SERVER_ERROR,
+        &req_data,
+    )?;
+    if req_data.is_hx_request {
+        return Ok(Html(AreasInnerTemplate { areas }.render().unwrap()));
+    }
+
+    Ok(Html(
+        AreasTemplate {
+            current_user: req_data.user,
+            areas,
+        }
+        .render()
+        .unwrap(),
+    ))
+}
+
+pub async fn create_area(
+    req_data: RequestData,
+    Form(area_form): Form<AreaFormData>,
+) -> Result<Html<String>, ApiErrorResponse> {
+    if area_form.name.is_empty() {
+        return api_err(
+            "Area name cannot be empty",
+            StatusCode::BAD_REQUEST,
+            &req_data,
+        );
+    }
+    into_api_err(
+        req_data
+            .conn
+            .create_area(AreaEntity {
+                id: 0,
+                name: area_form.name,
+            })
+            .await,
+        StatusCode::INTERNAL_SERVER_ERROR,
+        &req_data,
+    )?;
+    let areas = into_api_err(
+        req_data.conn.get_areas().await,
+        StatusCode::INTERNAL_SERVER_ERROR,
+        &req_data,
+    )?;
+    if req_data.is_hx_request {
+        return Ok(Html(AreasInnerTemplate { areas }.render().unwrap()));
+    }
+
+    Ok(Html(
+        AreasTemplate {
+            current_user: req_data.user,
+            areas,
+        }
+        .render()
+        .unwrap(),
+    ))
+}
+
+pub async fn update_area(
+    Path(id): Path<i64>,
+    req_data: RequestData,
+    Form(area_form): Form<AreaFormData>,
+) -> Result<Html<String>, ApiErrorResponse> {
+    if area_form.name.is_empty() {
+        return api_err(
+            "Area name cannot be empty",
+            StatusCode::BAD_REQUEST,
+            &req_data,
+        );
+    }
+    into_api_err(
+        req_data
+            .conn
+            .update_area(AreaEntity {
+                id,
+                name: area_form.name,
+            })
+            .await,
+        StatusCode::INTERNAL_SERVER_ERROR,
+        &req_data,
+    )?;
+    let area = into_api_err(
+        req_data.conn.get_area(id).await,
+        StatusCode::INTERNAL_SERVER_ERROR,
+        &req_data,
+    )?;
+    Ok(Html(AreaTemplate { area }.render().unwrap()))
+}
+
+pub async fn delete_area(
+    Path(id): Path<i64>,
+    req_data: RequestData,
+) -> Result<Html<String>, ApiErrorResponse> {
+    into_api_err(
+        req_data.conn.delete_area(id).await,
+        StatusCode::INTERNAL_SERVER_ERROR,
+        &req_data,
+    )?;
+    let areas = into_api_err(
+        req_data.conn.get_areas().await,
+        StatusCode::INTERNAL_SERVER_ERROR,
+        &req_data,
+    )?;
     if req_data.is_hx_request {
         return Ok(Html(AreasInnerTemplate { areas }.render().unwrap()));
     }

@@ -15,8 +15,7 @@ use crate::{
 use askama::Template;
 use axum::{
     extract::{
-        ws::{Message, WebSocket},
-        ConnectInfo, Path, WebSocketUpgrade,
+        ws::{Message, WebSocket}, ConnectInfo, Path, State, WebSocketUpgrade
     },
     response::{Html, IntoResponse},
     Extension,
@@ -85,7 +84,7 @@ pub async fn scanner(
 
 pub async fn scan(
     Extension(scanner): Extension<Arc<Mutex<ScannerService<SensorEntity>>>>,
-    Extension(pool): Extension<DbPool>,
+    State(pool): State<DbPool>,
 ) -> Html<String> {
     let state = scanner.lock().await.init(pool).await;
     Html(

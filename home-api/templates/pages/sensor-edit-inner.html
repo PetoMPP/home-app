@@ -6,8 +6,15 @@
         Name
         <input id="name-input" type="text" class="grow" name="name" value="{{sensor.name}}" />
     </label>
-    <label class="input input-bordered flex items-center gap-2">
+    <label class="input input-bordered flex items-center gap-2 pr-0">
         Area
+        <select id="area-input" name="area-id" class="grow select select-ghost border-x-0 rounded-l-none"
+            style="outline-style: none;">
+            <option value="" {% if sensor.area.is_none() %}selected{% endif %}>None</option>
+            {% for (area, current) in areas %}
+            <option value="{{area.id}}" class="font-semibold" {% if current %}selected{% endif %}>{{area.name}}</option>
+            {% endfor %}
+        </select>
     </label>
     <label class="input input-bordered flex items-center gap-2">
         Features
