@@ -5,3 +5,7 @@
 .page-title {
   @apply text-2xl font-semibold pb-4;
 }
+
+* {
+  scroll-margin-top: 5rem;
+}

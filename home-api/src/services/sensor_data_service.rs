@@ -113,7 +113,7 @@ impl SensorDataService {
                 let last_measurement = pool
                     .get()
                     .await?
-                    .get_temp_data(Some(&sensor.host), Some(1), None)
+                    .get_temp_data(Some(vec![&sensor.host]), Some(1), None, None)
                     .await?
                     .first()
                     .map_or(0, |t| t.timestamp);

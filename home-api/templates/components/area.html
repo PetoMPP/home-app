@@ -1,26 +1,33 @@
-<div class="card card-compact w-80 shadow-lg rounded-xl border-2 bg-base-300 border-base-content" id="area-{{area.id}}">
+<div class="card card-compact w-80 lg:w-full shadow-lg rounded-xl border-2 bg-base-300 border-base-content" id="area-{{area.id}}">
     <div class="card-body relative">
         <button id="area-delete-btn-{{area.id}}" class="btn btn-xs btn-square glass absolute top-1 right-1"
             hx-delete="/areas/{{area.id}}" hx-target="#page-content">❌</button>
         <h2 class="card-title">
-            <form id="area-edit-form-{{area.id}}" class="hidden" hx-post="/areas/{{area.id}}" hx-target="#area-{{area.id}}"
-                hx-swap="outerHTML">
+            <form id="area-edit-form-{{area.id}}" class="hidden" hx-post="/areas/{{area.id}}"
+                hx-target="#area-{{area.id}}" hx-swap="outerHTML">
                 <label class="input input-sm input-bordered flex items-center gap-2">
                     Name
                     <input id="name-input" type="text" class="grow" name="name" value="{{area.name}}" />
                 </label>
             </form>
-            <p id="area-edit-p-{{area.id}}" class="flex flex-row gap-2 items-center">{{area.name}}<a class="btn btn-xs btn-square glass"
-                    onclick="toggleAreaEdit({{area.id}});">✏️</a></p>
+            <p id="area-edit-p-{{area.id}}" class="flex flex-row gap-2 items-center">{{area.name}}<a
+                    class="btn btn-xs btn-square glass" onclick="toggleAreaEdit({{area.id}});">✏️</a></p>
         </h2>
+        <div id="area-actions-{{area.id}}" class="card-actions justify-end hidden">
+            <button form="area-edit-form-{{area.id}}" class="btn btn-sm btn-primary">Save</button>
+            <button class="btn btn-sm btn-error" onclick="toggleAreaEdit({{area.id}});">Cancel</button>
+        </div>
         <p class="text-sm">
             {% for features in area.features() %}
             {% include "components/sensor-features.html" %}
             {% endfor %}
         </p>
-        <div id="area-actions-{{area.id}}" class="card-actions justify-end hidden">
-            <button form="area-edit-form-{{area.id}}" class="btn btn-sm btn-primary">Save</button>
-            <button class="btn btn-sm btn-error" onclick="toggleAreaEdit({{area.id}});">Cancel</button>
+        <p class="text-lg font-semibold">Feature status</p>
+        <div role="tablist" class="tabs tabs-bordered">
+            <input type="radio" name="tabs" role="tab" class="tab" aria-label="Temperature"
+                hx-get="/areas/{{area.id}}/chart?feature=temp" hx-target="#area-chart-{{area.id}}" hx-on::before-request="Chart.getChart('area-chart-canvas-{{area.id}}')?.destroy();" />
+            <input type="radio" name="tabs" role="tab" class="tab tab-disabled" aria-label="Motion" disabled/>
         </div>
+        <div id="area-chart-{{area.id}}"></div>
     </div>
 </div>

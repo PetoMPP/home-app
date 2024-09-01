@@ -108,6 +108,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/areas", put(website::areas::create_area))
         .route("/areas/:id", delete(website::areas::delete_area))
         .route("/areas/:id", post(website::areas::update_area))
+        .route("/areas/:id/chart", get(website::areas::area_chart))
         .route("/logout", post(website::login::logout))
         .layer(middleware::from_fn_with_state(pool.clone(), auth))
         .route("/login", get(website::login::login_page))
