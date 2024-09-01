@@ -2,40 +2,45 @@
 
 <h2 class="page-title">Collection policies</h2>
 <p class="pb-6">Here you can manage the data collection policies.</p>
-<div class="flex flex-col gap-4 items-center">
-    <button id="new-policy-btn" class="btn btn-primary self-end" onclick="toggleNewPolicy();">New policy</button>
-    <div id="new-policy"
-        class="card card-compact w-80 shadow-lg rounded-xl border-2 bg-base-300 border-base-content text-base-content hidden">
-        <div class="card-body">
-            <div class="card-title flex-col">
-                <form id="new-policy-form" class="flex gap-4 p-4" hx-put="/data/schedule" hx-target="#page-content">
-                    {% let features = SensorFeatures::TEMPERATURE | SensorFeatures::MOTION %}
-                    {% include "components/sensor-features-input.html" %}
-                    <label class="input input-sm input-bordered flex items-center gap-2">
-                        Interval
-                        <input id="interval-input" type="time" class="grow" name="interval" value="00:05:00" step="5"/>
-                    </label>
-                </form>
-            </div>
-            <div class="card-actions justify-end">
-                <button class="btn btn-sm btn-primary" form="new-policy-form">Create</button>
-                <button class="btn btn-sm btn-error" onclick="toggleNewPolicy();">Cancel</button>
+<button id="new-policy-btn" class="btn btn-primary self-start" onclick="toggleNewPolicy();">New policy</button>
+<div class="flex gap-6 mt-4">
+    <div id="new-policy" class="lg:w-1/2 lg:grow hidden">
+        <div class="card card-compact w-80 lg:w-full shadow-lg rounded-xl border-2 bg-base-300 border-base-content text-base-content">
+            <div class="card-body">
+                <div class="card-title flex-col">
+                    <form id="new-policy-form" class="flex gap-4 p-4" hx-put="/data/schedule" hx-target="#page-content">
+                        {% let features = SensorFeatures::TEMPERATURE | SensorFeatures::MOTION %}
+                        {% include "components/sensor-features-input.html" %}
+                        <label class="input input-sm input-bordered flex items-center gap-2">
+                            Interval
+                            <input id="interval-input" type="time" class="grow" name="interval" value="00:05:00"
+                                step="5" />
+                        </label>
+                    </form>
+                </div>
+                <div class="card-actions justify-end">
+                    <button class="btn btn-sm btn-primary" form="new-policy-form">Create</button>
+                    <button class="btn btn-sm btn-error" onclick="toggleNewPolicy();">Cancel</button>
+                </div>
             </div>
         </div>
     </div>
 
     {% for policy in schedule %}
     {% let features = policy.features %}
-    <div class="card card-compact w-80 shadow-lg rounded-xl border-2 bg-base-300 border-base-content text-base-content">
-        <div class="card-body">
-            <div class="card-title">
-                {% include "components/sensor-features.html" %}
-                <p>Poll interval: <time duration>{{policy.interval_ms}}</time></p>
-            </div>
-            <div class="card-actions justify-end">
-                <button class="btn btn-sm btn-error"
-                    hx-delete="/data/schedule?{{crate::website::data::schedule::delete_query(policy)}}"
-                    hx-target="#page-content">Delete</button>
+    <div class="lg:w-1/2 lg:grow">
+        <div
+            class="card card-compact w-80 lg:w-full shadow-lg rounded-xl border-2 bg-base-300 border-base-content text-base-content">
+            <div class="card-body">
+                <div class="card-title">
+                    {% include "components/sensor-features.html" %}
+                    <p>Poll interval: <time duration>{{policy.interval_ms}}</time></p>
+                </div>
+                <div class="card-actions justify-end">
+                    <button class="btn btn-sm btn-error"
+                        hx-delete="/data/schedule?{{crate::website::data::schedule::delete_query(policy)}}"
+                        hx-target="#page-content">Delete</button>
+                </div>
             </div>
         </div>
     </div>

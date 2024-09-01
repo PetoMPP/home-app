@@ -1,4 +1,4 @@
-<h1 class="page-title">Areas overview</h1>
+<h1 class="page-title">Areas management</h1>
 <p class="text-xl pb-4">Here are the areas available:</p>
 <button id="new-area-btn" class="btn btn-primary self-end" onclick="toggleNewArea();">Create a new area</button>
 <div class="hidden card card-compact w-80 shadow-lg rounded-xl border-2 bg-base-300 border-base-content" id="new-area">
@@ -17,9 +17,11 @@
         </div>
     </div>
 </div>
-<div class="flex flex-wrap gap-6 w-full justify-center mt-4">
+<div class="flex gap-6 mt-4">
     {% for area in areas %}
-    {% include "components/area.html" %}
+    <div class="lg:w-1/2 lg:grow">
+        {% include "components/area.html" %}
+    </div>
     {% endfor %}
 </div>
 

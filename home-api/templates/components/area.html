@@ -25,7 +25,8 @@
         <p class="text-lg font-semibold">Feature status</p>
         <div role="tablist" class="tabs tabs-bordered">
             <input type="radio" name="tabs" role="tab" class="tab" aria-label="Temperature"
-                hx-get="/areas/{{area.id}}/chart?feature=temp" hx-target="#area-chart-{{area.id}}" hx-on::before-request="Chart.getChart('area-chart-canvas-{{area.id}}')?.destroy();" />
+                hx-get="/areas/{{area.id}}/chart?feature=temp" hx-target="#area-chart-{{area.id}}"
+                hx-on::before-request="Chart.getChart('area-chart-canvas-{{area.id}}')?.destroy();"/>
             <input type="radio" name="tabs" role="tab" class="tab tab-disabled" aria-label="Motion" disabled/>
         </div>
         <div id="area-chart-{{area.id}}"></div>

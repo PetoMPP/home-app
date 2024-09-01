@@ -1,7 +1,9 @@
 <h1 class="page-title">Sensors management</h1>
 <p class="text-xl">Here are the sensors available:</p>
-<div class="flex flex-wrap gap-6 w-full justify-center mt-4">
+<div class="flex gap-6 mt-4">
     {% for sensor in sensors %}
-    {% include "components/sensor.html" %}
+    <div class="lg:w-1/2 lg:grow">
+        {% include "components/sensor.html" %}
+    </div>
     {% endfor %}
 </div>
