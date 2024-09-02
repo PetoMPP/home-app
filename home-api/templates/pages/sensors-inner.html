@@ -2,8 +2,18 @@
 <p class="text-xl">Here are the sensors available:</p>
 <div class="flex flex-wrap lg:flex-nowrap gap-6 mt-4">
     {% for sensor in sensors %}
+    {% let areas = crate::website::sensors::areas(areas, sensor) %}
     <div class="lg:w-1/2 lg:grow">
         {% include "components/sensor.html" %}
     </div>
     {% endfor %}
 </div>
+<script>
+    function toggleSensorEdit(host) {
+        document.getElementById(`sensor-actions-${host}`).classList.toggle('hidden');
+        document.getElementById(`sensor-name-${host}`).classList.toggle('hidden');
+        document.getElementById(`sensor-area-${host}`).classList.toggle('hidden');
+        document.getElementById(`sensor-edit-form-${host}`).classList.toggle('hidden');
+        document.getElementById(`sensor-form-btns-${host}`).classList.toggle('hidden');
+    }
+</script>

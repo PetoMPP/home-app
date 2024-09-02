@@ -1,4 +1,2 @@
-<a hx-get="/sensors/{{host}}/edit" class="btn btn-sm btn-primary" hx-target="#page-content"
-    hx-push-url="true">Edit</a>
-<a hx-delete="/sensors/{{host}}" class="btn btn-sm btn-error" data-loading-class="btn-disabled"
-    hx-target="#page-content">Delete</a>
+<button class="btn btn-sm lg:btn-xs btn-square glass" onclick="toggleSensorEdit('{{host}}')">✏️</button>
+<button class="btn btn-sm lg:btn-xs btn-square glass" hx-delete="/sensors/{{host}}" hx-target="#page-content">❌</button>

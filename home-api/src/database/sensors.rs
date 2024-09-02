@@ -23,7 +23,7 @@ pub trait SensorDatabase {
         &self,
         host: &str,
         sensor: SensorEntity,
-    ) -> Result<SensorEntity, Box<dyn std::error::Error>>;
+    ) -> Result<bool, Box<dyn std::error::Error>>;
     async fn delete_sensor(&self, host: &str) -> Result<usize, Box<dyn std::error::Error>>;
 }
 
@@ -88,10 +88,10 @@ impl SensorDatabase for DbConn {
         &self,
         host: &str,
         sensor: SensorEntity,
-    ) -> Result<SensorEntity, Box<dyn std::error::Error>> {
+    ) -> Result<bool, Box<dyn std::error::Error>> {
         Ok(self
-            .query_single(&format!(
-                "UPDATE sensors SET name = '{}', area_id = {}, features = {} WHERE host = '{}' RETURNING *",
+            .execute(&format!(
+                "UPDATE sensors SET name = '{}', area_id = {}, features = {} WHERE host = '{}'",
                 sensor.name,
                 sensor
                     .area
@@ -101,6 +101,6 @@ impl SensorDatabase for DbConn {
                 host
             ))
             .await?
-            .ok_or("Error updating sensor")?)
+            > 0)
     }
 }

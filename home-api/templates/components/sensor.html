@@ -1,19 +1,44 @@
 {% let host = sensor.host.replace(".", "-") %}
 {% let features = sensor.features %}
-<div class="card card-compact w-80 lg:w-full shadow-lg rounded-xl border-2 {{crate::website::sensors::sensor_style(sensor)}}" id="sensor-{{host}}">
+<div class="card card-compact w-80 lg:w-full shadow-lg rounded-xl border-2 {{crate::website::sensors::sensor_style(sensor)}}"
+    id="sensor-{{host}}">
     <div class="card-body">
-        <h2 class="card-title">{% include "components/sensor-features.html" %} {{sensor.name}}</h2>
-        {% if let Some(area) = sensor.area %}
-        <p class="text-sm">Located in: {{area.name}}</p>
-        {% else %}
-        <p class="text-sm">Not assigned to any area</p>
-        {% endif %}
-        <div class="card-actions justify-end">
+        <div id="sensor-actions-{{host}}" class="absolute top-1 right-1">
             {% if let SensorActions::Overview = action_type %}
             {% include "components/overview-sensor-actions.html" %}
             {% else if let SensorActions::Scanner = action_type %}
             {% include "components/scanner-sensor-actions.html" %}
             {% endif %}
         </div>
+        <h2 class="card-title">
+            <p id="sensor-name-{{host}}">{% include "components/sensor-features.html" %} {{sensor.name}}</p>
+            <form id="sensor-edit-form-{{host}}" class="hidden flex flex-col gap-4" hx-post="/sensors/{{host}}" hx-target="#sensor-{{host}}"
+                hx-swap="outerHTML">
+                <label class="input input-sm input-bordered flex items-center gap-2">
+                    Name
+                    <input id="name-input" type="text" class="grow" name="name" value="{{sensor.name}}" />
+                </label>
+                <label class="input input-sm input-bordered flex items-center gap-2 pr-0">
+                    Area
+                    <select id="area-input" name="area-id" class="grow select select-ghost border-x-0 rounded-l-none"
+                        style="outline-style: none;">
+                        <option value="" {% if sensor.area.is_none() %}selected{% endif %}>None</option>
+                        {% for (area, current) in areas %}
+                        <option value="{{area.id}}" class="font-semibold" {% if current %}selected{% endif %}>
+                            {{area.name}}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+            </form>
+        </h2>
+        <div id="sensor-form-btns-{{host}}" class="card-actions justify-end hidden">
+            <button form="sensor-edit-form-{{host}}" class="btn btn-sm btn-primary">Save</button>
+            <button class="btn btn-sm btn-error" onclick="toggleSensorEdit('{{host}}')">Cancel</button>
+        </div>
+        {% if let Some(area) = sensor.area %}
+        <p id="sensor-area-{{host}}" class="text-sm">Located in: {{area.name}}</p>
+        {% else %}
+        <p id="sensor-area-{{host}}" class="text-sm">Not assigned to any area</p>
+        {% endif %}
     </div>
 </div>

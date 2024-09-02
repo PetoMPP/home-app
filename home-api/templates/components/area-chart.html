@@ -91,6 +91,8 @@
             },
         }
     });
-    document.getElementById('area-{{area.id}}').scrollIntoView();
 
+    {% if !no_control %}
+    document.getElementById('area-{{area.id}}').scrollIntoView();
+    {% endif %}
 </script>
