@@ -214,7 +214,7 @@ pub async fn area_chart(
                 Some(host) => into_api_err(
                     req_data
                         .conn
-                        .get_sensor(&host.replace("-", ".").trim())
+                        .get_sensor(host.replace('-', ".").trim())
                         .await,
                     StatusCode::INTERNAL_SERVER_ERROR,
                     &req_data,
@@ -256,8 +256,14 @@ pub async fn area_chart(
                 data: vec![
                     {
                         let temps = temp_data.iter().map(|t| t.temperature);
-                        let min = temps.clone().min_by(|a, b| a.partial_cmp(b).unwrap()).unwrap_or_default();
-                        let max = temps.clone().max_by(|a, b| a.partial_cmp(b).unwrap()).unwrap_or_default();
+                        let min = temps
+                            .clone()
+                            .min_by(|a, b| a.partial_cmp(b).unwrap())
+                            .unwrap_or_default();
+                        let max = temps
+                            .clone()
+                            .max_by(|a, b| a.partial_cmp(b).unwrap())
+                            .unwrap_or_default();
                         let margin = ((max - min) * 0.1).max(1.0);
                         let min = min - margin;
                         let max = max + margin;
@@ -278,8 +284,14 @@ pub async fn area_chart(
                     },
                     {
                         let hums = temp_data.iter().map(|t| t.humidity);
-                        let min = hums.clone().min_by(|a, b| a.partial_cmp(b).unwrap()).unwrap_or_default();
-                        let max = hums.clone().max_by(|a, b| a.partial_cmp(b).unwrap()).unwrap_or_default();
+                        let min = hums
+                            .clone()
+                            .min_by(|a, b| a.partial_cmp(b).unwrap())
+                            .unwrap_or_default();
+                        let max = hums
+                            .clone()
+                            .max_by(|a, b| a.partial_cmp(b).unwrap())
+                            .unwrap_or_default();
                         let margin = ((max - min) * 0.1).max(1.0);
                         let min = min - margin;
                         let max = max + margin;

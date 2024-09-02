@@ -504,7 +504,10 @@ pub mod db {
             &mut self,
             pool: &crate::database::DbPool,
         ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-            let sensor = (&pool.get().await.map_err(|e| e.to_string())?)
+            let sensor = pool
+                .get()
+                .await
+                .map_err(|e| e.to_string())?
                 .get_sensor(&self.host)
                 .await
                 .map_err(|e| e.to_string())?;
