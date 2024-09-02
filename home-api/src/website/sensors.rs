@@ -39,9 +39,11 @@ pub struct SensorTemplate {
     pub areas: Vec<(AreaEntity, bool)>,
 }
 
-pub fn areas(areas: &Vec<AreaEntity>, sensor: &SensorEntity) -> Vec<(AreaEntity, bool)> {
+pub fn areas<'a>(
+    areas: impl Iterator<Item = &'a AreaEntity>,
+    sensor: &SensorEntity,
+) -> Vec<(AreaEntity, bool)> {
     areas
-        .iter()
         .cloned()
         .map(|a| {
             let id = a.id;
@@ -169,11 +171,12 @@ pub async fn update_sensor(
         &req_data,
     )?;
     let areas = areas(
-        &into_api_err(
+        into_api_err(
             req_data.conn.get_area_entities().await,
             StatusCode::INTERNAL_SERVER_ERROR,
             &req_data,
-        )?,
+        )?
+        .iter(),
         &sensor_entity,
     );
     Ok(Html(

@@ -38,11 +38,9 @@ impl TempDataDatabase for DbConn {
                 query.push_str(" AND timestamp > ");
                 query.push_str(&after.to_string());
             }
-        } else {
-            if let Some(after) = after {
-                query.push_str(" WHERE timestamp > ");
-                query.push_str(&after.to_string());
-            }
+        } else if let Some(after) = after {
+            query.push_str(" WHERE timestamp > ");
+            query.push_str(&after.to_string());
         }
         query.push_str(" ORDER BY timestamp DESC");
         if let Some(limit) = limit {

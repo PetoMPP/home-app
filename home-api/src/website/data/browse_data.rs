@@ -81,7 +81,12 @@ async fn handle_temp_data(
     let items = into_api_err(
         req_data
             .conn
-            .get_temp_data(Option::<Vec<&'static str>>::None, Some(PAGE_SIZE + 1), offset, None)
+            .get_temp_data(
+                Option::<Vec<&'static str>>::None,
+                Some(PAGE_SIZE + 1),
+                offset,
+                None,
+            )
             .await,
         StatusCode::INTERNAL_SERVER_ERROR,
         req_data,
