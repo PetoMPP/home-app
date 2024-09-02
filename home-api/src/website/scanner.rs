@@ -134,6 +134,7 @@ pub async fn pair_sensor(
         SensorTemplate {
             sensor,
             action_type: SensorActions::Scanner,
+            areas: vec![],
         }
         .render()
         .unwrap(),

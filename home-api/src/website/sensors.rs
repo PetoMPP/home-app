@@ -1,4 +1,3 @@
-use super::components::alert::{AlertTemplate, AlertType};
 use crate::{
     api_err,
     database::{areas::AreaDatabase, sensors::SensorDatabase},
@@ -12,11 +11,7 @@ use crate::{
     ApiErrorResponse,
 };
 use askama::Template;
-use axum::{
-    extract::{Path, RawForm},
-    http::HeaderMap,
-    response::Html,
-};
+use axum::{extract::Path, http::HeaderMap, response::Html, Form};
 use reqwest::{Client, StatusCode};
 
 #[derive(Template)]
@@ -25,6 +20,7 @@ pub struct SensorsTemplate {
     pub current_user: Option<User>,
     pub sensors: Vec<SensorEntity>,
     pub action_type: SensorActions,
+    pub areas: Vec<AreaEntity>,
 }
 
 #[derive(Template)]
@@ -32,6 +28,7 @@ pub struct SensorsTemplate {
 pub struct SensorsInnerTemplate {
     pub sensors: Vec<SensorEntity>,
     pub action_type: SensorActions,
+    pub areas: Vec<AreaEntity>,
 }
 
 #[derive(Template)]
@@ -39,6 +36,22 @@ pub struct SensorsInnerTemplate {
 pub struct SensorTemplate {
     pub sensor: SensorEntity,
     pub action_type: SensorActions,
+    pub areas: Vec<(AreaEntity, bool)>,
+}
+
+pub fn areas(areas: &Vec<AreaEntity>, sensor: &SensorEntity) -> Vec<(AreaEntity, bool)> {
+    areas
+        .iter()
+        .cloned()
+        .map(|a| {
+            let id = a.id;
+            (a, sensor.area.as_ref().map(|a| a.id) == Some(id))
+        })
+        .collect()
+}
+
+pub fn areas_empty() -> Vec<(AreaEntity, bool)> {
+    Vec::new()
 }
 
 pub fn sensor_style(sensor: &SensorEntity) -> &'static str {
@@ -47,21 +60,6 @@ pub fn sensor_style(sensor: &SensorEntity) -> &'static str {
     }
 
     "bg-base-300 border-base-content text-base-content"
-}
-
-#[derive(Template, Default)]
-#[template(path = "pages/sensor-edit.html")]
-pub struct SensorEditTemplate {
-    pub current_user: Option<User>,
-    pub sensor: SensorEntity,
-    pub areas: Vec<(AreaEntity, bool)>,
-}
-
-#[derive(Template, Default)]
-#[template(path = "pages/sensor-edit-inner.html")]
-pub struct SensorEditInnerTemplate {
-    pub sensor: SensorEntity,
-    pub areas: Vec<(AreaEntity, bool)>,
 }
 
 pub enum SensorActions {
@@ -89,11 +87,17 @@ pub async fn sensors(req_data: RequestData) -> Result<Html<String>, ApiErrorResp
         StatusCode::INTERNAL_SERVER_ERROR,
         &req_data,
     )?;
+    let areas = into_api_err(
+        req_data.conn.get_area_entities().await,
+        StatusCode::INTERNAL_SERVER_ERROR,
+        &req_data,
+    )?;
     match req_data.is_hx_request {
         true => Ok(Html(
             SensorsInnerTemplate {
                 sensors,
                 action_type: SensorActions::Overview,
+                areas,
             }
             .render()
             .unwrap(),
@@ -103,6 +107,7 @@ pub async fn sensors(req_data: RequestData) -> Result<Html<String>, ApiErrorResp
                 sensors,
                 current_user: req_data.user,
                 action_type: SensorActions::Overview,
+                areas,
             }
             .render()
             .unwrap(),
@@ -110,59 +115,11 @@ pub async fn sensors(req_data: RequestData) -> Result<Html<String>, ApiErrorResp
     }
 }
 
-pub async fn edit_sensor(
-    req_data: RequestData,
-    Path(host): Path<String>,
-) -> Result<Html<String>, ApiErrorResponse> {
-    let host = host.replace('-', ".");
-    let sensor = into_api_err(
-        req_data.conn.get_sensor(&host).await,
-        StatusCode::INTERNAL_SERVER_ERROR,
-        &req_data,
-    )?;
-    let Some(sensor) = sensor else {
-        return api_err("Sensor not found", StatusCode::NOT_FOUND, &req_data);
-    };
-    let areas = into_api_err(
-        req_data.conn.get_area_entities().await,
-        StatusCode::INTERNAL_SERVER_ERROR,
-        &req_data,
-    )?
-    .into_iter()
-    .map(|a| {
-        let id = a.id;
-        (a, sensor.area.as_ref().map(|a| a.id) == Some(id))
-    })
-    .collect();
-    Ok(match req_data.is_hx_request {
-        true => Html(SensorEditInnerTemplate { sensor, areas }.render().unwrap()),
-        false => Html(
-            SensorEditTemplate {
-                current_user: req_data.user,
-                sensor,
-                areas,
-            }
-            .render()
-            .unwrap(),
-        ),
-    })
-}
-
 pub async fn update_sensor(
     req_data: RequestData,
     Path(host): Path<String>,
-    form: RawForm,
+    Form(sensor): Form<SensorFormData>,
 ) -> Result<Html<String>, ApiErrorResponse> {
-    let sensor = match serde_urlencoded::from_bytes::<SensorFormData>(&form.0) {
-        Ok(sensor) => sensor,
-        Err(e) => {
-            return api_err(
-                format!("Form decoding error: {}", e),
-                StatusCode::BAD_REQUEST,
-                &req_data,
-            );
-        }
-    };
     let host = host.replace('-', ".");
     let sensor_entity = into_api_err(
         req_data.conn.get_sensor(&host).await,
@@ -202,10 +159,28 @@ pub async fn update_sensor(
         StatusCode::INTERNAL_SERVER_ERROR,
         &req_data,
     )?;
+    let sensor_entity = into_api_err(
+        req_data
+            .conn
+            .get_sensor(&host)
+            .await
+            .and_then(|s| Ok(s.ok_or(anyhow::anyhow!("Sensor not found"))?)),
+        StatusCode::INTERNAL_SERVER_ERROR,
+        &req_data,
+    )?;
+    let areas = areas(
+        &into_api_err(
+            req_data.conn.get_area_entities().await,
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &req_data,
+        )?,
+        &sensor_entity,
+    );
     Ok(Html(
-        AlertTemplate {
-            alert_message: Some("Sensor updated successfully!".to_string()),
-            alert_type: Some(AlertType::Success),
+        SensorTemplate {
+            sensor: sensor_entity,
+            action_type: SensorActions::Overview,
+            areas,
         }
         .render()
         .unwrap(),
@@ -226,6 +201,12 @@ pub async fn delete_sensor(
         return api_err("Sensor not found", StatusCode::NOT_FOUND, &req_data);
     }
 
+    let areas = into_api_err(
+        req_data.conn.get_area_entities().await,
+        StatusCode::INTERNAL_SERVER_ERROR,
+        &req_data,
+    )?;
+
     Ok(Html(
         SensorsInnerTemplate {
             sensors: into_api_err(
@@ -234,6 +215,7 @@ pub async fn delete_sensor(
                 &req_data,
             )?,
             action_type: SensorActions::Overview,
+            areas,
         }
         .render()
         .unwrap(),

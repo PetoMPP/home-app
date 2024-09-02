@@ -111,24 +111,12 @@ pub mod json {
         pub name: String,
         #[serde(rename = "area-id")]
         pub area_id: String,
-        #[serde(rename = "features-temp")]
-        pub features_temp: Option<String>,
-        #[serde(rename = "features-motion")]
-        pub features_motion: Option<String>,
     }
 
     impl From<SensorFormData> for SensorDto {
         fn from(val: SensorFormData) -> Self {
-            let mut features = SensorFeatures::empty();
-            if val.features_temp.is_some() {
-                features |= SensorFeatures::TEMPERATURE;
-            }
-            if val.features_motion.is_some() {
-                features |= SensorFeatures::MOTION;
-            }
             SensorDto {
                 name: Some(val.name),
-                features: Some(features.bits()),
             }
         }
     }
@@ -136,7 +124,6 @@ pub mod json {
     #[derive(Debug, Default, Serialize, Deserialize, Clone)]
     pub struct SensorDto {
         pub name: Option<String>,
-        pub features: Option<u32>,
     }
 
     #[derive(Debug, Default, Serialize, Deserialize, Clone)]
@@ -517,14 +504,12 @@ pub mod db {
             &mut self,
             pool: &crate::database::DbPool,
         ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-            self.pair_id = pool
-                .get()
-                .await
-                .map_err(|e| e.to_string())?
+            let sensor = (&pool.get().await.map_err(|e| e.to_string())?)
                 .get_sensor(&self.host)
                 .await
-                .map_err(|e| e.to_string())?
-                .and_then(|s| s.pair_id);
+                .map_err(|e| e.to_string())?;
+            self.pair_id = sensor.as_ref().and_then(|s| s.pair_id.clone());
+            self.area = sensor.as_ref().and_then(|s| s.area.clone());
             Ok(())
         }
     }
@@ -548,7 +533,6 @@ pub mod db {
         fn from(val: SensorEntity) -> Self {
             SensorDto {
                 name: Some(val.name),
-                features: Some(val.features.bits()),
             }
         }
     }

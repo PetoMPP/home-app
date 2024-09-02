@@ -1,6 +1,5 @@
 {% if let Some(_) = sensor.pair_id %}
-<a class="btn btn-sm btn-disabled" hx-target="#sensor-{{host}}" hx-swap="outerHTML">Paired</a>
+<button class="btn btn-sm lg:btn-xs btn-disabled glass" hx-post="/pair/{{host}}" hx-target="#sensor-{{host}}" hx-swap="outerHTML" disabled>🔗✔️</button>
 {% else %}
-<a hx-post="/pair/{{host}}" class="btn btn-primary btn-sm" data-loading-class="btn-disabled"
-    hx-target="#sensor-{{host}}" hx-swap="outerHTML">Pair</a>
+<button class="btn btn-sm lg:btn-xs btn-square glass" hx-post="/pair/{{host}}" hx-target="#sensor-{{host}}" hx-swap="outerHTML">🔗</button>
 {% endif %}

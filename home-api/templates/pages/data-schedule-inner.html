@@ -5,7 +5,8 @@
 <button id="new-policy-btn" class="btn btn-primary self-start" onclick="toggleNewPolicy();">New policy</button>
 <div class="flex flex-wrap lg:flex-nowrap gap-6 mt-4">
     <div id="new-policy" class="lg:w-1/2 lg:grow hidden">
-        <div class="card card-compact w-80 lg:w-full shadow-lg rounded-xl border-2 bg-base-300 border-base-content text-base-content">
+        <div
+            class="card card-compact w-80 lg:w-full shadow-lg rounded-xl border-2 bg-base-300 border-base-content text-base-content">
             <div class="card-body">
                 <div class="card-title flex-col">
                     <form id="new-policy-form" class="flex gap-4 p-4" hx-put="/data/schedule" hx-target="#page-content">
@@ -32,14 +33,11 @@
         <div
             class="card card-compact w-80 lg:w-full shadow-lg rounded-xl border-2 bg-base-300 border-base-content text-base-content">
             <div class="card-body">
+                <button class="btn btn-sm lg:btn-xs btn-square glass absolute top-1 right-1"
+                    hx-delete="/data/schedule?{{crate::website::data::schedule::delete_query(policy)}}" hx-target="#page-content">❌</button>
                 <div class="card-title">
                     {% include "components/sensor-features.html" %}
                     <p>Poll interval: <time duration>{{policy.interval_ms}}</time></p>
-                </div>
-                <div class="card-actions justify-end">
-                    <button class="btn btn-sm btn-error"
-                        hx-delete="/data/schedule?{{crate::website::data::schedule::delete_query(policy)}}"
-                        hx-target="#page-content">Delete</button>
                 </div>
             </div>
         </div>
