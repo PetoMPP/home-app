@@ -1,23 +1,57 @@
-# Home sensor
+# Home Sensor
 
-The ESP32 based sensor for the home app. Currently it is based on the ESP32-C3 board and is hosting an API for sending environmental data to the home api.
-Right now it exposes temperature and humidity data from Dht11.
+The **Home Sensor** project is designed to collect and expose environmental data using an ESP32-C3 microcontroller. This project currently focuses on temperature and humidity monitoring, with plans to expand functionality in the future. The sensor hosts a web server that provides access to collected data through a simple API, making it an integral part of your smart home system.
 
-# Schematics
+## Current Features
 
-The schematics for the sensor can be found in the `schematics` directory. The schematics are created using [Tinkercad®](https://www.tinkercad.com/).
+- **Temperature and Humidity Monitoring**: The Home Sensor continuously collects temperature and humidity data, making it available via a built-in web server.
 
-# Building and flashing
+- **Web Server with API**: Data is exposed through a RESTful API, allowing for easy integration with other smart home components and applications.
 
-Before building the project you need to create a `secret.h` file in src directory. The file should contain the following:
+## Future Features
 
-```c
+- **Motion Detection**: Support for motion sensors will be added, enabling the Home Sensor to detect movement and integrate with home security systems.
 
-#pragma once
+- **Noise Detection**: Future updates will include noise detection, allowing the sensor to monitor sound levels in your environment.
 
-char ssid[] = "<SSID>";
-char pass[] = "<PASSWORD>";
+- **ESP8266 Support**: In addition to the ESP32-C3, support for the ESP8266 microcontroller will be introduced, broadening the hardware compatibility of the project.
 
-```
+## Schematics
 
-To build and flash the project you need the [Arduino VS Code Extension](https://marketplace.visualstudio.com/items?itemName=vsciot-vscode.vscode-arduino). Configuration file `.vscode/arduino.json` is provided with optimal setting for `XIAO_ESP32C3` board and only `port` might need adjustments. 
+Schematics for the Home Sensor project are available in the `schematics` directory. These schematics were created using TinkerCad and provide a detailed guide on how to wire the components for the ESP32-C3.
+
+## Building and Flashing
+
+To build and flash the Home Sensor firmware, you can use the Arduino VSCode extension. Follow these steps to get started:
+
+1. **Install Prerequisites**:
+
+   - Install the [Arduino VSCode extension](https://marketplace.visualstudio.com/items?itemName=vsciot-vscode.vscode-arduino).
+   - Ensure you have the necessary libraries and board support for the ESP32-C3.
+
+2. **Open the Project**:
+
+   - Open the Home Sensor project in VSCode.
+
+3. **Create secret.h file**:
+
+   - Before building the project you need to create a `secret.h` file in src directory. The file should contain the following:
+    ```c
+
+    #pragma once
+
+    char ssid[] = "<SSID>";
+    char pass[] = "<PASSWORD>";
+
+    ```
+
+4. **Build and Flash**:
+
+   - Use the Arduino VSCode extension to build the project.
+   - After the build is complete, you can also use the Arduino VSCode extension to flash the firmware directly to your ESP32-C3 board.
+
+## Getting Started
+
+After flashing the firmware, the Home Sensor will start collecting data and hosting the web server. You can access the API through your local network to retrieve temperature and humidity data.
+
+This project is designed to be easily expandable, with additional sensors and features planned for future updates. Stay tuned for new releases that will bring even more functionality to your Home Sensor.
