@@ -1,19 +1,14 @@
-# Home app
+# Home App
 
-My home IOT solution for managing various devices.
+Welcome to the **Home App** repository! This project is a comprehensive smart home solution designed to monitor, manage, and interact with various sensors in your environment. The repository contains everything you need to get started with setting up your smart home system, including the Home API backend, Home Sensor firmware, and detailed schematics.
 
+## Repository Structure
 
-# Projects
+- [Home API](/home-api/README.md): The core backend component of the Home App. It manages the discovery, organization, and interaction with various sensors in your home. The API hosts a web interface for real-time data visualization and provides a RESTful API for integrating sensor data into other applications.
 
-## Home api
+- [Home Sensor](/home-sensor/README.md): Firmware written in C++ for the ESP32-C3 microcontroller, designed to collect temperature and humidity data. The sensor hosts a web server and exposes the collected data via a RESTful API. Future updates will include support for motion detection, noise monitoring, and compatibility with ESP8266.
 
-Home API is the central component of the Home App, enabling seamless discovery, management, and interaction with home sensors. It provides a web interface for monitoring real-time temperature and humidity data through interactive charts, with sensors assigned to specific areas of your home. To learn more about the project, see the [README](home-api/README.md).
-
-## Home sensor
-
-The Home Sensor project uses an ESP32-C3 microcontroller to monitor temperature and humidity, hosting a web server that provides data via a RESTful API. Future updates will add motion and noise detection, along with support for the ESP8266. To learn more about the project, see the [README](home-sensor/README.md).
-
-# Roadmap
+## Roadmap
 
 - [x] Make a web interface for managing supported devices
 - [x] Add feature support for devices to mark them as able to do various actions, like:

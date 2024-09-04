@@ -1,6 +1,6 @@
 # Home API
 
-The **Home API** is the core component of the **Home App**, designed to provide seamless management and interaction with various home sensors. It serves as the backend system that powers the Home App, handling the discovery, management, and organization of sensors throughout your home. The Home API is pivotal in delivering real-time data to the user, ensuring an efficient and user-friendly smart home experience.
+The **Home API** is the core component of the **Home App**, designed to provide seamless management and interaction with various home sensors. It serves as the backend system that powers the Home App, handling the discovery, management, and organization of sensors throughout your home.
 
 ## Key Features
 
