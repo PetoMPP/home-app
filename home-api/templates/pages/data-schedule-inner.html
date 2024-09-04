@@ -4,11 +4,11 @@
 <p class="pb-6">Here you can manage the data collection policies.</p>
 <button id="new-policy-btn" class="btn btn-primary self-start" onclick="toggleNewPolicy();">New policy</button>
 <div class="flex flex-wrap lg:flex-nowrap gap-6 mt-4">
-    <div id="new-policy" class="lg:w-1/2 lg:grow hidden">
+    <div id="new-policy" class="lg:w-1/2 hidden">
         <div
             class="card card-compact w-80 lg:w-full shadow-lg rounded-xl border-2 bg-base-300 border-base-content text-base-content">
             <div class="card-body">
-                <div class="card-title flex-col">
+                <div class="card-title">
                     <form id="new-policy-form" class="flex gap-4 p-4" hx-put="/data/schedule" hx-target="#page-content">
                         {% let features = SensorFeatures::TEMPERATURE | SensorFeatures::MOTION %}
                         {% include "components/sensor-features-input.html" %}
@@ -29,7 +29,7 @@
 
     {% for policy in schedule %}
     {% let features = policy.features %}
-    <div class="lg:w-1/2 lg:grow">
+    <div class="lg:w-1/2">
         <div
             class="card card-compact w-80 lg:w-full shadow-lg rounded-xl border-2 bg-base-300 border-base-content text-base-content">
             <div class="card-body">
