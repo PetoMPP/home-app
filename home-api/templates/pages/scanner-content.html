@@ -28,7 +28,7 @@
     <div class="flex flex-wrap lg:flex-nowrap gap-6 mt-4">
         {% for sensor in sensors %}
         {% let areas = crate::website::sensors::areas_empty() %}
-        <div class="lg:w-1/2 lg:grow">
+        <div class="lg:w-1/2">
             {% include "components/sensor.html" %}
         </div>
         {% endfor %}

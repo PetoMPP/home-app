@@ -1,7 +1,7 @@
 <h1 class="page-title pb-6">Home overview</h1>
 <div class="flex flex-wrap lg:flex-nowrap gap-6 mt-4">
     {% for (area, temp, hum) in areas %}
-    <div class="lg:w-1/2 lg:grow">
+    <div class="lg:w-1/2">
         {% include "components/area-basic.html" %}
     </div>
     {% endfor %}
