@@ -28,9 +28,8 @@ public:
         return strcmp(req->method, method) == 0 && strncmp(req->route, route, strlen(route)) == 0;
     }
     virtual void write_response(NetworkClient *client, Request *req) = 0;
-    void write_json(NetworkClient *client, JsonDocument *json_ptr, Status status = sOK)
+    void write_json(NetworkClient *client, JsonDocument json, Status status = sOK)
     {
-        JsonDocument json = JsonDocument(*json_ptr);
         int json_len = serializeJsonPretty(json, json_str, RESPONSE_BODY_LEN);
         client->println(get_status_header(status));
         client->println("Content-Type: application/json");

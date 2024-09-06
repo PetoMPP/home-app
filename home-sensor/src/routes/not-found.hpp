@@ -17,6 +17,6 @@ public:
     {
         JsonDocument json;
         json["error"] = "Not found";
-        write_json(client, &json, sNOT_FOUND);
+        write_json(client, json, sNOT_FOUND);
     }
 };
