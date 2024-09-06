@@ -21,7 +21,7 @@ public:
         if (!pairing_service->is_paired(req))
         {
             json["error"] = PairingService::ERROR_MESSAGE;
-            write_json(client, &json, sUNAUTHORIZED);
+            write_json(client, json, sUNAUTHORIZED);
             return;
         }
         int next_val = -1;
@@ -37,11 +37,11 @@ public:
         else
         {
             json["error"] = "Invalid path, must be /led/on or /led/off";
-            write_json(client, &json, sBAD_REQUEST);
+            write_json(client, json, sBAD_REQUEST);
             return;
         }
         led_service->blinking = next_val;
         json["result"] = "ok";
-        write_json(client, &json);
+        write_json(client, json);
     }
 };
