@@ -20,12 +20,12 @@ public:
         if (!pairing_service->pairing)
         {
             json["error"] = PairingService::ERROR_MESSAGE;
-            write_json(client, &json, sUNAUTHORIZED);
+            write_json(client, json, sUNAUTHORIZED);
             return;
         }
 
         json["id"] = pairing_service->generate();
-        write_json(client, &json);
+        write_json(client, json);
     }
 };
 
@@ -59,6 +59,6 @@ public:
             json["result"] = "success";
         }
 
-        write_json(client, &json, status);
+        write_json(client, json, status);
     }
 };

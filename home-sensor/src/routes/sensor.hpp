@@ -23,13 +23,13 @@ public:
         {
             JsonDocument json;
             json["error"] = PairingService::ERROR_MESSAGE;
-            write_json(client, &json, sUNAUTHORIZED);
+            write_json(client, json, sUNAUTHORIZED);
             return;
         }
 
         SensorStore *data_store = data_service->store;
         JsonDocument json;
-        json = JsonDocument(*data_store->as_json());
+        // json = JsonDocument(*data_store->as_json());
         json["pairing"] = pairing_service->pairing;
         if (is_full)
         {
@@ -42,9 +42,10 @@ public:
             usage["pair_used"] = pair_store->len;
             usage["pair_total"] = pair_store->max_size;
             json["usage"] = usage;
+            json["free_mem"] = esp_get_free_heap_size();
         }
 
-        write_json(client, &json);
+        write_json(client, json);
     }
 };
 
@@ -67,7 +68,7 @@ public:
         if (!pairing_service->is_paired(req))
         {
             json["error"] = PairingService::ERROR_MESSAGE;
-            write_json(client, &json, sUNAUTHORIZED);
+            write_json(client, json, sUNAUTHORIZED);
             return;
         }
         DeserializationError err = deserializeJson(json, req->body, 1024);
@@ -84,6 +85,6 @@ public:
         data_service->save_store();
         JsonDocument response;
         response["result"] = "ok";
-        write_json(client, &response);
+        write_json(client, response);
     }
 };

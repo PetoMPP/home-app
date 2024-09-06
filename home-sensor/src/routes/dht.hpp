@@ -39,7 +39,7 @@ public:
         if (!pairing_service->is_paired(req))
         {
             json["error"] = PairingService::ERROR_MESSAGE;
-            write_json(client, &json, sUNAUTHORIZED);
+            write_json(client, json, sUNAUTHORIZED);
             return;
         }
         time_t now;
@@ -80,7 +80,7 @@ public:
         }
 
         json["measurements"] = arr;
-        write_json(client, &json);
+        write_json(client, json);
         return;
     }
 };
