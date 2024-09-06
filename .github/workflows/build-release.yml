@@ -9,17 +9,16 @@ on:
     branches:
       - "main"
     paths:
-      - "src/**"
-      - "templates/**"
-      - "assets/**"
-      - "build.rs"
-      - "Cargo.toml"
-      - "Cargo.lock"
-      - "home-api.db"
-      - "input.css"
-      - "package.json"
-      - "package-lock.json"
-      - "tailwind.config.js"
+      - "home-api/src/**"
+      - "home-api/templates/**"
+      - "home-api/assets/**"
+      - "home-api/build.rs"
+      - "home-api/Cargo.toml"
+      - "home-api/Cargo.lock"
+      - "home-api/input.css"
+      - "home-api/package.json"
+      - "home-api/package-lock.json"
+      - "home-api/tailwind.config.js"
 
 jobs:
   release-arm64:
@@ -30,7 +29,6 @@ jobs:
     env:
       BRANCH: ${{ github.ref }}
       RETENTION_DAYS: 0
-      API_SECRET: just-to-pass-the-build-for-testing
 
     steps:
       - uses: actions/checkout@v4
@@ -40,6 +38,8 @@ jobs:
           arch: aarch64
           distro: ubuntu_latest
           base_image: rust:latest
+          # Not required, but speeds up builds
+          githubToken: ${{ github.token }}
           setup: |
             mkdir -p "${PWD}/artifacts"
           dockerRunArgs: |
@@ -69,3 +69,33 @@ jobs:
           name: home-api-arm64
           retention-days: ${{ env.RETENTION_DAYS }}
           path: ./artifacts
+
+          
+  compile-sensor:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: home-sensor
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create secret.h
+        run: |
+          echo "#pragma once" > src/secret.h
+          echo "char ssid[] = \"ssid\";" >> src/secret.h
+          echo "char pass[] = \"password\";" >> src/secret.h
+
+      - name: Compile sketch
+        uses: arduino/compile-sketches@v1
+        with:
+          sketch-paths: ./
+          libraries: |
+            - name: "Adafruit Unified Sensor"
+            - name: "ArduinoJson"
+            - name: "DHT sensor library"
+            - name: "UUID"
+          fqbn: "esp32:esp32:esp32"
+
+      - run: ls -a
