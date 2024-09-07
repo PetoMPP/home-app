@@ -8,6 +8,7 @@ class Store
 protected:
     char *buff;
     JsonDocument doc;
+    const char* name;
 
 public:
     int len; // Valid directly after load/save operations
@@ -17,7 +18,8 @@ public:
     {
         buff = new char[max_size];
         this->max_size = max_size;
-        preferences->begin(store_name);
+        name = store_name;
+        preferences->begin(name);
         len = preferences->getString("store", buff, max_size);
         preferences->end();
         DeserializationError err = deserializeJson(doc, buff, len);
@@ -42,11 +44,11 @@ public:
             ++iter;
         }
     }
-    void save(Preferences *preferences, const char *store_name)
+    void save(Preferences *preferences)
     {
         len = serializeJson(doc, buff, max_size);
         buff[len] = '\0';
-        preferences->begin(store_name);
+        preferences->begin(name);
         preferences->putString("store", buff);
         preferences->end();
     }

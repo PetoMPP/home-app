@@ -43,6 +43,7 @@ public:
             usage["pair_total"] = pair_store->max_size;
             json["usage"] = usage;
             json["free_mem"] = esp_get_free_heap_size();
+            json["uptime"] = ((double)esp_timer_get_time()) / (1000 * 1000);
         }
 
         write_json(client, json);
