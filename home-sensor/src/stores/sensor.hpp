@@ -8,7 +8,7 @@ public:
     char *name = new char[64];
     uint32_t *features = new uint32_t();
     SensorStore() {}
-    SensorStore(Preferences *preferences, int max_size, const char *store_name) : Store(preferences, max_size, store_name)
+    SensorStore(Preferences *preferences, int max_size) : Store(preferences, max_size, "data")
     {
     }
     void init_json() override

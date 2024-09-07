@@ -102,4 +102,9 @@ public:
         last_measurement_idx = (size_t)readings[0];
         memcpy(measurements, readings + 1, DHT_STORAGE_ENTRIES * sizeof(DhtMeasurement));
     }
+
+    void save() {
+        ulong now = millis();
+        handle_save(&now, true);
+    }
 };

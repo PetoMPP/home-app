@@ -86,7 +86,7 @@ public:
         strcpy(store->keys[store->count], key);
         store->count++;
         store->as_json();
-        store->save(prefs, "pair");
+        store->save(prefs);
         return true;
     }
 
@@ -96,7 +96,7 @@ public:
         last_button_state = digitalRead(PAIR_BUTTON_PIN);
         randomSeed(analogRead(RNG_PIN));
         next_id.seed(random());
-        store = new PairStore(prefs, PAIR_STORE_SIZE, "pair");
+        store = new PairStore(prefs, PAIR_STORE_SIZE);
         store->init_json();
     }
 };

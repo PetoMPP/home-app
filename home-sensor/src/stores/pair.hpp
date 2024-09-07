@@ -8,7 +8,7 @@ public:
     char *keys[64] = {new char[64]};
     int count = 0;
     PairStore() {}
-    PairStore(Preferences *preferences, int max_size, const char *store_name) : Store(preferences, max_size, store_name)
+    PairStore(Preferences *preferences, int max_size) : Store(preferences, max_size, "pair")
     {
     }
 

@@ -42,6 +42,17 @@ void loop()
   ulong pairing_elapsed = pairing_service->handle();
   ulong wifi_elapsed = wifi_service->handle();
   ulong server_elapsed = server_service->handle();
+  printElapsed(led_elapsed, dht_elapsed, pairing_elapsed, wifi_elapsed, server_elapsed);
+  if (esp_get_free_heap_size() < 10000)
+  {
+    dht_service->save();
+    Serial.println("Sensor will reboot in 5s, cause: low memory");
+    esp_restart();
+  }
+}
+
+void printElapsed(ulong led_elapsed, ulong dht_elapsed, ulong pairing_elapsed, ulong wifi_elapsed, ulong server_elapsed)
+{
   ulong elapsed = led_elapsed + dht_elapsed + pairing_elapsed + wifi_elapsed + server_elapsed;
   if (elapsed <= 10)
   {

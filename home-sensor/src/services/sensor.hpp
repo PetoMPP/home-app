@@ -24,12 +24,12 @@ public:
 
     void save_store()
     {
-        store->save(prefs, "data");
+        store->save(prefs);
     }
 
     void init() override
     {
-        store = new SensorStore(prefs, DATA_STORE_SIZE, "data");
+        store = new SensorStore(prefs, DATA_STORE_SIZE);
         store->init_json();
     }
 };
