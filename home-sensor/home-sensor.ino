@@ -47,6 +47,7 @@ void loop()
   {
     dht_service->save();
     Serial.println("Sensor will reboot in 5s, cause: low memory");
+    delay(5000);
     esp_restart();
   }
 }
