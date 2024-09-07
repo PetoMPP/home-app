@@ -96,6 +96,9 @@ jobs:
             - name: "ArduinoJson"
             - name: "DHT sensor library"
             - name: "UUID"
+          cli-compile-flags: |
+            - --warnings
+            - all
           fqbn: "esp32:esp32:esp32"
 
       - run: ls -a
