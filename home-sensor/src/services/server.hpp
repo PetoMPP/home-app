@@ -15,8 +15,8 @@ private:
     std::vector<Route *> routes;
     Route *not_found_route = new NotFoundRoute();
     char *req_buff = new char[REQ_BUFF_LEN];
-    char *last_state = "";
-    char *handle_server()
+    const char *last_state = "";
+    const char *handle_server()
     {
         if (!server)
             return "Not listening";
@@ -57,7 +57,7 @@ private:
 protected:
     void handle_inner(ulong *start_ms) override
     {
-        char *state = handle_server();
+        const char *state = handle_server();
         if (strcmp(state, last_state) != 0)
         {
             Serial.print("Server state: ");

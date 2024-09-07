@@ -22,7 +22,7 @@ public:
         preferences->begin(name);
         len = preferences->getString("store", buff, max_size);
         preferences->end();
-        DeserializationError err = deserializeJson(doc, buff, len);
+        deserializeJson(doc, buff, len);
     }
     virtual void init_json() = 0;
     virtual JsonDocument *as_json() = 0;
