@@ -54,7 +54,7 @@ public:
     {
         char pk[64] = {0};
         get_header_value(req, "X-Pair-Id", pk);
-        return pk != NULL && store->has_key(pk);
+        return store->has_key(pk);
     }
 
     const char *generate()
@@ -74,7 +74,7 @@ public:
     {
         char key[64] = {0};
         get_header_value(req, "X-Pair-Id", key);
-        if (key == NULL || !temp_pair_store->has_key(key))
+        if (!temp_pair_store->has_key(key))
         {
             return false;
         }
