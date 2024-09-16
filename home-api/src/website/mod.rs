@@ -12,6 +12,7 @@ pub mod home;
 pub mod login;
 pub mod scanner;
 pub mod sensors;
+pub mod system;
 
 #[derive(Template)]
 #[template(path = "pages/error.html")]

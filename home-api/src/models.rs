@@ -70,6 +70,7 @@ impl NormalizedString {
 
 #[derive(Debug, Clone)]
 pub struct User {
+    pub id: i64,
     pub name: String,
 }
 
@@ -366,7 +367,7 @@ pub mod auth {
     pub struct Claims {
         pub sub: String,
         pub exp: u64,
-        pub acs: u64,
+        pub acs: i64,
     }
 
     const SUB_CLAIM: &str = "sub";
@@ -405,14 +406,17 @@ pub mod auth {
             Self {
                 sub: value.name.parse().unwrap(),
                 exp: chrono::Utc::now().timestamp() as u64 + 3600,
-                acs: 0,
+                acs: value.id,
             }
         }
     }
 
     impl From<Claims> for User {
         fn from(val: Claims) -> Self {
-            User { name: val.sub }
+            User {
+                id: val.acs,
+                name: val.sub,
+            }
         }
     }
 }
@@ -432,6 +436,7 @@ pub mod db {
 
     #[derive(Debug, Clone)]
     pub struct UserEntity {
+        pub id: i64,
         pub name: String,
         pub normalized_name: NormalizedString,
         pub password: Password,
@@ -440,9 +445,10 @@ pub mod db {
     impl FromRow for UserEntity {
         fn from_row(row: &rusqlite::Row) -> rusqlite::Result<Self> {
             Ok(UserEntity {
-                name: row.get::<_, String>(0)?,
-                normalized_name: NormalizedString::new(row.get::<_, String>(1)?),
-                password: Password::from_str(&row.get::<_, String>(2)?)
+                id: row.get::<_, i64>(0)?,
+                name: row.get::<_, String>(1)?,
+                normalized_name: NormalizedString::new(row.get::<_, String>(2)?),
+                password: Password::from_str(&row.get::<_, String>(3)?)
                     .map_err(|_| rusqlite::Error::InvalidQuery)?,
             })
         }
@@ -450,7 +456,10 @@ pub mod db {
 
     impl From<UserEntity> for User {
         fn from(val: UserEntity) -> Self {
-            User { name: val.name }
+            User {
+                id: val.id,
+                name: val.name,
+            }
         }
     }
 

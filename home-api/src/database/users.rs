@@ -13,6 +13,12 @@ pub trait UserDatabase {
         password: impl Into<String>,
     ) -> Result<UserEntity, Box<dyn std::error::Error>>;
     async fn ensure_admin(&self) -> Result<Option<UserEntity>, Box<dyn std::error::Error>>;
+    async fn change_password(
+        &self,
+        username: &str,
+        password: impl Into<String>,
+    ) -> Result<(), Box<dyn std::error::Error>>;
+    async fn delete_user(&self, username: &str) -> Result<(), Box<dyn std::error::Error>>;
 }
 
 impl UserDatabase for DbConn {
@@ -22,7 +28,7 @@ impl UserDatabase for DbConn {
     ) -> Result<Option<UserEntity>, Box<dyn std::error::Error>> {
         let username = NormalizedString::new(username);
         self.query_single::<UserEntity>(&format!(
-            "SELECT * FROM users WHERE normalized_name = '{}' LIMIT 1",
+            "SELECT rowid, name, normalized_name, password FROM users WHERE normalized_name = '{}' LIMIT 1",
             *username
         ))
         .await
@@ -37,7 +43,7 @@ impl UserDatabase for DbConn {
         let normalized_name = NormalizedString::new(&name);
         let password = Password::new(password.into());
         Ok(self.query_single::<UserEntity>(&format!(
-            "INSERT INTO users (name, normalized_name, password) VALUES ('{}', '{}', '{}') RETURNING *",
+            "INSERT INTO users (name, normalized_name, password) VALUES ('{}', '{}', '{}') RETURNING rowid, name, normalized_name, password",
             &name, *normalized_name, password
         ))
         .await?.ok_or("Failed to create user")?)
@@ -52,6 +58,32 @@ impl UserDatabase for DbConn {
     }
 
     async fn get_users(&self) -> Result<Vec<UserEntity>, Box<dyn std::error::Error>> {
-        self.query::<UserEntity>("SELECT * FROM users").await
+        self.query::<UserEntity>("SELECT rowid, name, normalized_name, password FROM users")
+            .await
+    }
+    
+    async fn change_password(
+        &self,
+        username: &str,
+        password: impl Into<String>,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let username = NormalizedString::new(username);
+        let password = Password::new(password.into());
+        self.execute(&format!(
+            "UPDATE users SET password = '{}' WHERE normalized_name = '{}'",
+            password, *username
+        ))
+        .await?;
+        Ok(())
+    }
+    
+    async fn delete_user(&self, username: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let username = NormalizedString::new(username);
+        self.execute(&format!(
+            "DELETE FROM users WHERE normalized_name = '{}'",
+            *username
+        ))
+        .await?;
+        Ok(())
     }
 }
