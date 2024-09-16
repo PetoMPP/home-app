@@ -61,7 +61,7 @@ impl UserDatabase for DbConn {
         self.query::<UserEntity>("SELECT rowid, name, normalized_name, password FROM users")
             .await
     }
-    
+
     async fn change_password(
         &self,
         username: &str,
@@ -76,7 +76,7 @@ impl UserDatabase for DbConn {
         .await?;
         Ok(())
     }
-    
+
     async fn delete_user(&self, username: &str) -> Result<(), Box<dyn std::error::Error>> {
         let username = NormalizedString::new(username);
         self.execute(&format!(

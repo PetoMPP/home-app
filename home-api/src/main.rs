@@ -111,8 +111,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/system", get(website::system::system))
         .route("/system/users", get(website::system::users::users))
         .route("/system/users", put(website::system::users::create_user))
-        .route("/system/users", post(website::system::users::change_password))
-        .route("/system/users/:name", delete(website::system::users::delete_user))
+        .route(
+            "/system/users",
+            post(website::system::users::change_password),
+        )
+        .route(
+            "/system/users/:name",
+            delete(website::system::users::delete_user),
+        )
         .route("/logout", post(website::login::logout))
         .layer(middleware::from_fn_with_state(pool.clone(), auth))
         .route("/login", get(website::login::login_page))

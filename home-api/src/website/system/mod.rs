@@ -1,6 +1,9 @@
+use crate::{
+    models::{RequestData, User},
+    ApiErrorResponse,
+};
 use askama::Template;
 use axum::response::Html;
-use crate::{models::{RequestData, User}, ApiErrorResponse};
 
 pub mod users;
 
