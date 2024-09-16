@@ -1,0 +1,41 @@
+{% let current_user = current_user.as_ref().unwrap() %}
+<tr id="user-row-{{user.id}}">
+    <td>{{user.name}}</td>
+    <td class="flex flex-row gap-2">
+        <div id="user-buttons-{{user.id}}" class="flex flex-col lg:flex-row gap-2">
+            <button id="password-change-btn-{{user.id}}" class="btn btn-sm btn-primary" onclick="togglePasswordChange({{user.id}})">Change password</button>
+            <button
+            {% if user.id !=current_user.id %}
+                class="btn btn-sm btn-error"
+                hx-delete="/system/users/{{user.name}}"
+                hx-target="#page-content"
+            {% else %}
+                class="btn btn-sm btn-disabled"
+            {% endif %}
+                >Delete</button>
+        </div>
+        <div id="user-password-{{user.id}}" class="hidden">
+            <form id="user-password-form-{{user.id}}" hx-post="/system/users" hx-target="#user-row-{{user.id}}" hx-swap="outerHTML">
+                <input class="hidden" name="name" autocomplete="name" value="{{user.name}}" />
+                <label class="input input-sm input-bordered flex items-center gap-2 mb-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4 opacity-70">
+                        <path fill-rule="evenodd"
+                            d="M14 6a4 4 0 0 1-4.899 3.899l-1.955 1.955a.5.5 0 0 1-.353.146H5v1.5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1-.5-.5v-2.293a.5.5 0 0 1 .146-.353l3.955-3.955A4 4 0 1 1 14 6Zm-4-2a.75.75 0 0 0 0 1.5.5.5 0 0 1 .5.5.75.75 0 0 0 1.5 0 2 2 0 0 0-2-2Z"
+                            clip-rule="evenodd" />
+                    </svg>
+                    <input class="grow w-14 lg:w-auto" name="password" type="password" autocomplete="new-password" />
+                </label>
+                <label class="input input-sm input-bordered flex items-center gap-2 mb-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4 opacity-70">
+                        <path fill-rule="evenodd"
+                            d="M14 6a4 4 0 0 1-4.899 3.899l-1.955 1.955a.5.5 0 0 1-.353.146H5v1.5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1-.5-.5v-2.293a.5.5 0 0 1 .146-.353l3.955-3.955A4 4 0 1 1 14 6Zm-4-2a.75.75 0 0 0 0 1.5.5.5 0 0 1 .5.5.75.75 0 0 0 1.5 0 2 2 0 0 0-2-2Z"
+                            clip-rule="evenodd" />
+                    </svg>
+                    <input class="grow w-14 lg:w-auto" name="confirm" type="password" autocomplete="new-password" />
+                </label>
+            </form>
+            <button form="user-password-form-{{user.id}}" class="btn btn-sm btn-primary">Save</button>
+            <button class="btn btn-sm btn-error" onclick="togglePasswordChange({{user.id}})">Cancel</button>
+        </div>
+    </td>
+</tr>
