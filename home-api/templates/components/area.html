@@ -2,7 +2,8 @@
     <div class="card-body relative">
         <div id="area-btns-{{area.id}}" class="absolute top-1 right-1">
             <button class="btn btn-sm lg:btn-xs btn-square glass" onclick="toggleAreaEdit({{area.id}});">✏️</button>
-            <button class="btn btn-sm lg:btn-xs btn-square glass" hx-delete="/areas/{{area.id}}" hx-target="#page-content">❌</button>
+            <button class="btn btn-sm lg:btn-xs btn-square glass" hx-delete="/areas/{{area.id}}" hx-target="#page-content"
+                hx-confirm='Do you want to delete "{{area.name}}" area?'>❌</button>
         </div>
         <h2 class="card-title">
             <form id="area-edit-form-{{area.id}}" class="hidden" hx-post="/areas/{{area.id}}"

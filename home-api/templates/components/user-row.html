@@ -9,6 +9,7 @@
                 class="btn btn-sm btn-error"
                 hx-delete="/system/users/{{user.name}}"
                 hx-target="#page-content"
+                hx-confirm='Do you want to user "{{user.name}}"?'
             {% else %}
                 class="btn btn-sm btn-disabled"
             {% endif %}
