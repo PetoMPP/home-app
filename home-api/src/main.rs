@@ -7,6 +7,7 @@ use axum::{
     routing::{delete, get, post, put},
     Extension, Router,
 };
+use axum_server::tls_rustls::RustlsConfig;
 use database::{user_sessions::UserSessionDatabase, users::UserDatabase, DbManager, DbPool};
 use models::{
     auth::{Claims, Token},
@@ -24,9 +25,13 @@ use website::{components::alert::AlertTemplate, ErrorTemplate};
 mod database;
 mod models;
 mod services;
+mod ssl;
 mod website;
 
 refinery::embed_migrations!("migrations");
+
+const PORT_HTTP: u16 = 3000;
+const PORT_HTTPS: u16 = 3001;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -37,6 +42,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .init();
     #[cfg(not(debug_assertions))]
     tracing_subscriber::fmt().init();
+    // generate a self-signed certificate
+    let (cert, pkey) = ssl::generate_ssl()?;
+    let cfg = RustlsConfig::from_pem(cert.to_pem()?, pkey.private_key_to_pem_pkcs8()?).await?;
+    // spawn a second server to redirect http requests to this server
+    ssl::start_https_redirect_server();
     // run migrations
     {
         let mut conn = r2d2_sqlite::rusqlite::Connection::open("home-api.db")?;
@@ -134,14 +144,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         app = app.layer(tower_livereload::LiveReloadLayer::new());
     }
 
-    // run our app with hyper, listening globally on port 3000
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
-    tracing::info!("listening on {}", listener.local_addr()?);
-    Ok(axum::serve(
-        listener,
-        app.into_make_service_with_connect_info::<SocketAddr>(),
-    )
-    .await?)
+    // run our app with axum_server and rustls
+    let addr = SocketAddr::from(([0, 0, 0, 0], PORT_HTTPS));
+    tracing::info!("listening on {}", addr);
+    Ok(axum_server::bind_rustls(addr, cfg)
+        .serve(app.into_make_service_with_connect_info::<SocketAddr>())
+        .await?)
 }
 
 pub type ApiErrorResponse = (StatusCode, HeaderMap, axum::response::Html<String>);

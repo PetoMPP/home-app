@@ -4,7 +4,7 @@
         {% match current_user %}
         {% when Some with (curr) %}
         <li>
-                <a hx-get="/" hx-push-url="true" hx-target="#page-content" hx-swap="innerHtml">Overview</a>
+                <a hx-get="/" hx-push-url="true" hx-target="#page-content">Overview</a>
         </li>
         <li>
                 <h2 class="menu-title">Management</h2>
@@ -22,8 +22,7 @@
         </li>
         <li><a class="bg-warning text-warning-content" hx-post="/logout" hx-push-url="true">Logout</a></li>
         {% when None %}
-        <li><a class="bg-primary text-primary-content" hx-get="/login" hx-push-url="true" hx-target="closest body"
-                        hx-swap="innerHtml">Login</a>
+        <li><a class="bg-primary text-primary-content" hx-get="/login" hx-push-url="true" hx-target="#page-content">Login</a>
         </li>
         {% endmatch %}
 </ul>
