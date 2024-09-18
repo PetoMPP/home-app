@@ -1,7 +1,8 @@
 use super::sensors::{SensorActions, SensorTemplate};
 use crate::{
+    api_error::into_api_err,
+    api_error::ApiErrorResponse,
     database::{sensors::SensorDatabase, DbPool},
-    into_api_err,
     models::{
         db::{SensorEntity, SensorFeatures},
         RequestData, User,
@@ -10,7 +11,6 @@ use crate::{
         scanner_service::{ScannerService, ScannerState},
         sensor_service::SensorService,
     },
-    ApiErrorResponse,
 };
 use askama::Template;
 use axum::{
