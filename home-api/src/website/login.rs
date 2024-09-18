@@ -1,12 +1,12 @@
 use crate::{
-    api_err,
+    api_error::api_err,
+    api_error::into_api_err,
+    api_error::ApiErrorResponse,
     database::{user_sessions::UserSessionDatabase, users::UserDatabase},
-    into_api_err,
     models::{
         auth::{Claims, Token},
         NormalizedString, RequestData, User,
     },
-    ApiErrorResponse,
 };
 use askama::Template;
 use axum::{http::HeaderMap, response::Html, Form};

@@ -1,6 +1,6 @@
 use crate::{
+    api_error::ApiErrorResponse,
     models::{RequestData, User},
-    ApiErrorResponse,
 };
 use askama::Template;
 use axum::{http::StatusCode, response::Html};

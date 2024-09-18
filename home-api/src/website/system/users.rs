@@ -1,9 +1,9 @@
 use crate::{
-    api_err,
+    api_error::api_err,
+    api_error::into_api_err,
+    api_error::ApiErrorResponse,
     database::users::UserDatabase,
-    into_api_err,
     models::{RequestData, User},
-    ApiErrorResponse,
 };
 use askama::Template;
 use axum::{extract::Path, response::Html, Form};

@@ -1,27 +1,18 @@
-use askama::Template;
 use axum::{
-    extract::Request,
-    http::HeaderMap,
-    middleware::{self, Next},
-    response::Response,
     routing::{delete, get, post, put},
     Extension, Router,
 };
 use axum_server::tls_rustls::RustlsConfig;
-use database::{user_sessions::UserSessionDatabase, users::UserDatabase, DbManager, DbPool};
-use models::{
-    auth::{Claims, Token},
-    db::SensorEntity,
-    NormalizedString, RequestData,
-};
+use database::{users::UserDatabase, DbManager, DbPool};
+use models::db::SensorEntity;
 use r2d2_sqlite::SqliteConnectionManager;
-use reqwest::{header::LOCATION, StatusCode};
 use services::{scanner_service::ScannerService, sensor_data_service::SensorDataService};
-use std::{fmt::Display, net::SocketAddr, sync::Arc};
+use std::{net::SocketAddr, sync::Arc};
 use tokio::sync::Mutex;
 use tower_http::{services::ServeDir, trace::TraceLayer};
-use website::{components::alert::AlertTemplate, ErrorTemplate};
 
+mod api_error;
+mod auth;
 mod database;
 mod models;
 mod services;
@@ -78,14 +69,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let data_service = Mutex::new(data_service);
     let data_service = Arc::new(data_service);
     // start a task to delete expired tokens
-    {
-        let pool = pool.clone();
-        tokio::spawn(async move {
-            loop {
-                _ = delete_tokens(&pool).await;
-            }
-        })
-    };
+    auth::start_user_session_watchdog(pool.clone());
     // build app
     #[allow(unused_mut)]
     let mut app = Router::new()
@@ -130,7 +114,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             delete(website::system::users::delete_user),
         )
         .route("/logout", post(website::login::logout))
-        .layer(middleware::from_fn_with_state(pool.clone(), auth))
+        .layer(axum::middleware::from_fn_with_state(
+            pool.clone(),
+            auth::validate_user_session,
+        ))
         .route("/login", get(website::login::login_page))
         .route("/login", post(website::login::login))
         .fallback(website::not_found)
@@ -150,148 +137,4 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(axum_server::bind_rustls(addr, cfg)
         .serve(app.into_make_service_with_connect_info::<SocketAddr>())
         .await?)
-}
-
-pub type ApiErrorResponse = (StatusCode, HeaderMap, axum::response::Html<String>);
-
-pub fn api_err<T>(
-    error: impl Into<String>,
-    code: StatusCode,
-    req_data: &RequestData,
-) -> Result<T, ApiErrorResponse> {
-    if req_data.is_hx_request {
-        return Err((
-            code,
-            headers(),
-            axum::response::Html(
-                AlertTemplate {
-                    alert_message: Some(error.into()),
-                    alert_type: Some(code.into()),
-                }
-                .render()
-                .unwrap(),
-            ),
-        ));
-    }
-
-    Err((
-        code,
-        headers(),
-        axum::response::Html(
-            ErrorTemplate {
-                current_user: req_data.user.clone(),
-                status: code,
-                message: error.into(),
-            }
-            .render()
-            .unwrap(),
-        ),
-    ))
-}
-
-pub fn into_api_err<T>(
-    result: Result<T, impl Display>,
-    code: StatusCode,
-    req_data: &RequestData,
-) -> Result<T, ApiErrorResponse> {
-    if req_data.is_hx_request {
-        return result.map_err(|e| {
-            (
-                code,
-                headers(),
-                axum::response::Html(
-                    AlertTemplate {
-                        alert_message: Some(e.to_string()),
-                        alert_type: Some(code.into()),
-                    }
-                    .render()
-                    .unwrap(),
-                ),
-            )
-        });
-    }
-
-    result.map_err(|e| {
-        (
-            code,
-            headers(),
-            axum::response::Html(
-                ErrorTemplate {
-                    current_user: req_data.user.clone(),
-                    status: code,
-                    message: e.to_string(),
-                }
-                .render()
-                .unwrap(),
-            ),
-        )
-    })
-}
-
-fn headers() -> HeaderMap {
-    let mut header_map = HeaderMap::new();
-    header_map.insert("Hx-Retarget", "#alert-element".parse().unwrap());
-    header_map.insert("Hx-Reswap", "outerHTML".parse().unwrap());
-    header_map
-}
-
-async fn auth(
-    req_data: RequestData,
-    request: Request,
-    next: Next,
-) -> Result<Response, (StatusCode, HeaderMap)> {
-    let mut header_map = HeaderMap::new();
-    let error = match req_data.is_hx_request {
-        true => {
-            header_map.insert("HX-Redirect", "/login".parse().unwrap());
-
-            (StatusCode::UNAUTHORIZED, header_map)
-        }
-        false => {
-            header_map.insert(LOCATION, "/login".parse().unwrap());
-            (StatusCode::SEE_OTHER, header_map)
-        }
-    };
-    let (claims, token) = Token::try_from(&req_data.headers)
-        .and_then(|t| (&t).try_into().map(|c: Claims| (c, t)))
-        .map_err(|_| error.clone())?;
-    let normalized_name = NormalizedString::new(&claims.sub);
-    let _session = req_data
-        .conn
-        .get_session(normalized_name.clone(), token.clone())
-        .await
-        .ok()
-        .and_then(|s| s)
-        .ok_or(error.clone())?;
-    if !claims.validate() {
-        req_data
-            .conn
-            .delete_session(normalized_name, token)
-            .await
-            .ok();
-        return Err(error);
-    }
-
-    Ok(next.run(request).await)
-}
-
-async fn delete_tokens(pool: &DbPool) -> Result<(), Box<dyn std::error::Error>> {
-    tokio::time::sleep(std::time::Duration::from_secs(60)).await;
-    let conn = pool.get().await?;
-    let sessions = conn.get_sessions().await?;
-    let mut invalid_sessions = vec![];
-    for session in sessions {
-        let Ok(claims): Result<Claims, _> = (&session.token).try_into() else {
-            invalid_sessions.push(session);
-            continue;
-        };
-        if !claims.validate() {
-            invalid_sessions.push(session);
-        }
-    }
-    if !invalid_sessions.is_empty() {
-        return conn.delete_sessions(invalid_sessions).await.map(|_| ());
-    }
-
-    Ok(())
 }
