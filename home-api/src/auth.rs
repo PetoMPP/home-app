@@ -1,24 +1,21 @@
 use crate::{
     database::{user_sessions::UserSessionDatabase, DbPool},
-    models::{
-        auth::{Claims, Token},
-        NormalizedString, RequestData,
-    },
+    models::{auth::Claims, RequestData},
 };
-use axum::{extract::Request, http::HeaderMap, middleware::Next, response::Response};
+use axum::{body::Body, extract::Request, http::HeaderMap, middleware::Next, response::Response};
 use reqwest::{header, StatusCode};
 
 pub async fn validate_user_session(
     req_data: RequestData,
     request: Request,
     next: Next,
-) -> Result<Response, (StatusCode, HeaderMap)> {
-    let error = || {
+) -> Result<Response<Body>, (StatusCode, HeaderMap)> {
+    // RequestData validates the session cookie
+    req_data.user.as_ref().ok_or_else(|| {
         let mut header_map = HeaderMap::new();
         match req_data.is_hx_request {
             true => {
                 header_map.insert("HX-Redirect", "/login".parse().unwrap());
-
                 (StatusCode::UNAUTHORIZED, header_map)
             }
             false => {
@@ -26,28 +23,11 @@ pub async fn validate_user_session(
                 (StatusCode::SEE_OTHER, header_map)
             }
         }
-    };
-    let (claims, token) = Token::try_from(&req_data.headers)
-        .and_then(|t| (&t).try_into().map(|c: Claims| (c, t)))
-        .map_err(|_| error())?;
-    let normalized_name = NormalizedString::new(&claims.sub);
-    let _session = req_data
-        .conn
-        .get_session(normalized_name.clone(), token.clone())
-        .await
-        .ok()
-        .and_then(|s| s)
-        .ok_or_else(error)?;
-    if !claims.validate() {
-        req_data
-            .conn
-            .delete_session(normalized_name, token)
-            .await
-            .ok();
-        return Err(error());
-    }
+    })?;
 
-    Ok(next.run(request).await)
+    let response = next.run(request).await;
+
+    Ok(response)
 }
 
 pub fn start_user_session_watchdog(pool: DbPool) {
