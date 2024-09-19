@@ -386,7 +386,7 @@ pub mod auth {
 
     impl Claims {
         pub fn validate(&self) -> bool {
-            (self.exp as i64) - chrono::Utc::now().timestamp() > 0
+            self.exp - chrono::Utc::now().timestamp() > 0
         }
     }
 
