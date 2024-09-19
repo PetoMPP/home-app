@@ -16,7 +16,7 @@ pub fn generate_ssl() -> Result<(X509, PKey<Private>), ErrorStack> {
     let rsa = Rsa::generate(2048)?;
     let pkey = PKey::from_rsa(rsa)?;
     let mut cert = X509::builder()?;
-    cert.set_pubkey(&pkey.as_ref())?;
+    cert.set_pubkey(pkey.as_ref())?;
     let mut name = X509Name::builder()?;
     name.append_entry_by_nid(Nid::COUNTRYNAME, "PL")?;
     name.append_entry_by_nid(Nid::STATEORPROVINCENAME, "Mazowieckie")?;
@@ -25,12 +25,12 @@ pub fn generate_ssl() -> Result<(X509, PKey<Private>), ErrorStack> {
     name.append_entry_by_nid(Nid::ORGANIZATIONALUNITNAME, "IT")?;
     name.append_entry_by_nid(Nid::COMMONNAME, "Home API")?;
     let name = name.build();
-    cert.set_subject_name(&name.as_ref())?;
-    cert.set_issuer_name(&name.as_ref())?;
+    cert.set_subject_name(name.as_ref())?;
+    cert.set_issuer_name(name.as_ref())?;
     let nbf = Asn1Time::days_from_now(0)?;
     let naf = Asn1Time::days_from_now(365)?;
-    cert.set_not_before(&nbf.as_ref())?;
-    cert.set_not_after(&naf.as_ref())?;
+    cert.set_not_before(nbf.as_ref())?;
+    cert.set_not_after(naf.as_ref())?;
     cert.sign(&pkey, MessageDigest::sha256())?;
 
     Ok((cert.build(), pkey))
