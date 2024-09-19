@@ -8,6 +8,7 @@ use db::{SensorEntity, SensorFeatures};
 use deref_derive::Deref;
 use reqwest::StatusCode;
 
+#[allow(dead_code)]
 pub struct RequestData {
     pub token: Option<Token>,
     pub user: Option<User>,
