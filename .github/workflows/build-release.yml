@@ -53,7 +53,7 @@ jobs:
             nvm install 18
             npm install
             npm install npx
-            cargo build --release --features vendored
+            cargo build --release
             cp target/release/home-api /artifacts
       
       - name: Set retention for artifacts
