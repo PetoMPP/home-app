@@ -288,10 +288,20 @@ pub mod auth {
                 return Ok(None);
             };
             let normalized_name = NormalizedString::new(&claims.sub);
-            Ok(conn
-                .get_session(normalized_name, token)
+
+            let Some(_session) = conn
+                .get_session(normalized_name.clone(), token.clone())
                 .await?
-                .map(|_| claims.into()))
+            else {
+                return Ok(None);
+            };
+
+            if !claims.validate() {
+                conn.delete_session(normalized_name, token).await?;
+                return Ok(None);
+            }
+
+            Ok(Some(claims.into()))
         }
     }
 
@@ -366,7 +376,7 @@ pub mod auth {
     #[derive(Clone)]
     pub struct Claims {
         pub sub: String,
-        pub exp: u64,
+        pub exp: i64,
         pub acs: i64,
     }
 
@@ -404,8 +414,8 @@ pub mod auth {
     impl From<UserEntity> for Claims {
         fn from(value: UserEntity) -> Self {
             Self {
-                sub: value.name.parse().unwrap(),
-                exp: chrono::Utc::now().timestamp() as u64 + 3600,
+                sub: value.name,
+                exp: chrono::Utc::now().timestamp() + 3600,
                 acs: value.id,
             }
         }
