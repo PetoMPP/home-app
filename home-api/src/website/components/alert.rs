@@ -7,6 +7,7 @@ use std::fmt::Display;
 pub struct AlertTemplate {
     pub alert_type: Option<AlertType>,
     pub alert_message: Option<String>,
+    pub swap_oob: bool,
 }
 
 #[allow(dead_code)]

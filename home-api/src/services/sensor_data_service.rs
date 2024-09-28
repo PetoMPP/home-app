@@ -38,7 +38,7 @@ impl SensorDataService {
     }
 
     pub async fn restart(&mut self) -> Result<(), anyhow::Error> {
-        println!("Restarting sensor data service");
+        tracing::info!("Restarting sensor data service");
         if let Some(handle) = self.handle.take() {
             handle.abort();
             _ = handle.await;
@@ -72,7 +72,7 @@ impl SensorDataService {
                             time::Duration::from_millis(entry.interval_ms)
                                 .checked_sub(last_dur)
                                 .unwrap_or_else(|| {
-                                    println!(
+                                    tracing::warn!(
                                         "Sensor data service task took too long to run: {:?}",
                                         last_dur
                                     );
@@ -91,7 +91,7 @@ impl SensorDataService {
             while let Some(e) = handles.join_next().await {
                 // nothing should finish
                 // restart service
-                eprintln!("Sensor data service task finished unexpectedly: {:?}", e);
+                tracing::error!("Sensor data service task finished unexpectedly: {:?}", e);
             }
         });
 

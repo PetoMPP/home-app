@@ -78,6 +78,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/sensors", get(website::sensors::sensors))
         .route("/sensors/:host", delete(website::sensors::delete_sensor))
         .route("/sensors/:host", post(website::sensors::update_sensor))
+        .route("/sensors/:host/sync", post(website::sensors::sync_sensor))
         .route("/scanner", get(website::scanner::scanner))
         .route("/pair/:host", post(website::scanner::pair_sensor))
         .route("/scan", post(website::scanner::scan))
