@@ -6,7 +6,8 @@
 
 #define DHTPIN 5
 #define DHTTYPE DHT11
-#define DHT_MEASUREMENT_TIMEOUT_S 15 * 60
+#define DHT_MEASUREMENT_TIMEOUT_M 15
+#define DHT_MEASUREMENT_TIMEOUT_S DHT_MEASUREMENT_TIMEOUT_M * 60
 #define DHT_SAVE_TIMEOUT_MS 2 * 60 * 60 * 1000
 #define DHT_STORAGE_ENTRIES 150
 
@@ -29,7 +30,14 @@ private:
     {
         time_t now;
         time(&now);
-        if (now - measurements[last_measurement_idx].timestamp < DHT_MEASUREMENT_TIMEOUT_S)
+        time_t rounded_now = round_to_timeout(now);
+        time_t diff = now - rounded_now;
+        if (diff < 0 || diff > 2) // up to 2s after rounded time
+        {
+            return;
+        }
+        time_t timestamp = round_to_timeout(measurements[last_measurement_idx].timestamp);
+        if (now - timestamp < DHT_MEASUREMENT_TIMEOUT_S)
         {
             return;
         }
@@ -37,6 +45,7 @@ private:
         float t = dht->readTemperature();
         if (isnan(h) || h == 0.0 || isnan(t) || t == 0.0)
         {
+            Serial.println("Error reading from DHT!");
             return;
         }
         DhtMeasurement m = {now, h, t};
@@ -55,7 +64,7 @@ private:
         }
         measurements[last_measurement_idx] = m;
     }
-    void handle_save(ulong* start_ms, bool force = false)
+    void handle_save(ulong *start_ms, bool force = false)
     {
         if (!force && *start_ms < next_save)
         {
@@ -71,8 +80,18 @@ private:
         Serial.println("Saved readings!");
     }
 
+    time_t round_to_timeout(time_t timestamp)
+    {
+        // Convert the timestamp to minutes to avoid overflow
+        int32_t minutes = timestamp / 60;
+        // Round to the nearest 15 minutes in minutes
+        int32_t rounded_minutes = ((minutes + 7) / DHT_MEASUREMENT_TIMEOUT_M) * DHT_MEASUREMENT_TIMEOUT_M;
+        // Convert back to seconds
+        return rounded_minutes * 60;
+    }
+
 protected:
-    void handle_inner(ulong* start_ms) override
+    void handle_inner(ulong *start_ms) override
     {
         handle_measurement();
         handle_save(start_ms);
@@ -103,7 +122,8 @@ public:
         memcpy(measurements, readings + 1, DHT_STORAGE_ENTRIES * sizeof(DhtMeasurement));
     }
 
-    void save() {
+    void save()
+    {
         ulong now = millis();
         handle_save(&now, true);
     }
