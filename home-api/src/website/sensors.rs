@@ -1,3 +1,4 @@
+use super::components::alert::AlertTemplate;
 use crate::{
     api_error::api_err,
     api_error::into_api_err,
@@ -223,4 +224,62 @@ pub async fn delete_sensor(
         .render()
         .unwrap(),
     ))
+}
+
+pub async fn sync_sensor(
+    req_data: RequestData,
+    Path(host): Path<String>,
+) -> Result<Html<String>, ApiErrorResponse> {
+    let host = host.replace('-', ".");
+    let sensor = into_api_err(
+        Client::new()
+            .get_sensor(&host)
+            .await
+            .and_then(|s| s.map_err(|e| anyhow::anyhow!("{}", e).into())),
+        StatusCode::INTERNAL_SERVER_ERROR,
+        &req_data,
+    )?;
+    into_api_err(
+        req_data.conn.update_from_sensor(&host, sensor).await,
+        StatusCode::INTERNAL_SERVER_ERROR,
+        &req_data,
+    )?;
+    let sensor = into_api_err(
+        req_data
+            .conn
+            .get_sensor(&host)
+            .await
+            .and_then(|s| s.ok_or(anyhow::anyhow!("Sensor not found").into())),
+        StatusCode::INTERNAL_SERVER_ERROR,
+        &req_data,
+    )?;
+    let areas = into_api_err(
+        req_data
+            .conn
+            .get_area_entities()
+            .await
+            .map(|a| areas(a.iter(), &sensor)),
+        StatusCode::INTERNAL_SERVER_ERROR,
+        &req_data,
+    )?;
+
+    let html = format!(
+        "{}\n{}",
+        SensorTemplate {
+            sensor,
+            action_type: SensorActions::Overview,
+            areas,
+        }
+        .render()
+        .unwrap(),
+        AlertTemplate {
+            alert_message: Some("Sensor syncronized succesfully!".to_string()),
+            alert_type: Some(StatusCode::OK.into()),
+            swap_oob: true,
+        }
+        .render()
+        .unwrap()
+    );
+
+    Ok(Html(html))
 }

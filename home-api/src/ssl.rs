@@ -40,7 +40,7 @@ pub fn start_https_redirect_server() {
     tokio::spawn(async {
         let addr = SocketAddr::from(([0, 0, 0, 0], PORT_HTTP));
         let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-        tracing::debug!("listening on {}", listener.local_addr().unwrap());
+        tracing::info!("listening on {}", listener.local_addr().unwrap());
         axum::serve(listener, redirect.into_make_service())
             .await
             .unwrap();

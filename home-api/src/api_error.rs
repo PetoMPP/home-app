@@ -22,6 +22,7 @@ pub fn api_err<T>(
                 AlertTemplate {
                     alert_message: Some(error.into()),
                     alert_type: Some(code.into()),
+                    swap_oob: false,
                 }
                 .render()
                 .unwrap(),
@@ -58,6 +59,7 @@ pub fn into_api_err<T>(
                     AlertTemplate {
                         alert_message: Some(e.to_string()),
                         alert_type: Some(code.into()),
+                        swap_oob: false,
                     }
                     .render()
                     .unwrap(),

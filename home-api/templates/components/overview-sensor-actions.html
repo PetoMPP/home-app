@@ -1,3 +1,5 @@
+<button class="btn btn-sm lg:btn-xs btn-square glass" hx-post="/sensors/{{host}}/sync" hx-target="#sensor-{{host}}"
+    hx-swap="outerHTML">⟳</button>
 <button class="btn btn-sm lg:btn-xs btn-square glass" onclick="toggleSensorEdit('{{host}}')">✏️</button>
 <button class="btn btn-sm lg:btn-xs btn-square glass" hx-delete="/sensors/{{host}}" hx-target="#page-content"
     hx-confirm='Do you want to delete sensor "{{sensor.name}}"?'>❌</button>

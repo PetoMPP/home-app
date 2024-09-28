@@ -24,6 +24,12 @@ pub trait SensorDatabase {
         host: &str,
         sensor: SensorEntity,
     ) -> Result<bool, Box<dyn std::error::Error>>;
+    // Updates values from the actual sensor
+    async fn update_from_sensor(
+        &self,
+        host: &str,
+        sensor: SensorEntity,
+    ) -> Result<bool, Box<dyn std::error::Error>>;
     async fn delete_sensor(&self, host: &str) -> Result<usize, Box<dyn std::error::Error>>;
 }
 
@@ -97,6 +103,22 @@ impl SensorDatabase for DbConn {
                     .area
                     .map(|a| a.id.to_string())
                     .unwrap_or("NULL".to_string()),
+                sensor.features.bits(),
+                host
+            ))
+            .await?
+            > 0)
+    }
+
+    async fn update_from_sensor(
+        &self,
+        host: &str,
+        sensor: SensorEntity,
+    ) -> Result<bool, Box<dyn std::error::Error>> {
+        Ok(self
+            .execute(&format!(
+                "UPDATE sensors SET name = '{}', features = {} WHERE host = '{}'",
+                sensor.name,
                 sensor.features.bits(),
                 host
             ))

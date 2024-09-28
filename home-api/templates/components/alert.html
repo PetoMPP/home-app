@@ -1,6 +1,6 @@
 {% if let Some(alert_message) = alert_message %}
 {% let alert_type = alert_type.clone().unwrap_or_default() %}
-<div id="alert-element" class="animate-fade-down w-full break-all pb-4 relative">
+<div id="alert-element" class="animate-fade-down w-full break-all pb-4 relative" {% if swap_oob %} hx-swap-oob="true" {% endif %}>
     <div id="alert-inner" role="alert"
         class="alert {{alert_type}} animate-fade-down animate-reverse animate-delay-[15000ms]">
         <a class="btn btn-sm lg:btn-xs btn-square glass absolute top-1 right-1" onclick="hideAlert();">X</a>
@@ -10,18 +10,18 @@
         </svg>
         <span>{{ alert_message }}</span>
     </div>
+    <script>
+        var inner = document.getElementById('alert-inner');
+        inner.addEventListener('animationend', setHandler);
+        function setHandler() {
+            inner.removeEventListener('animationend', setHandler);
+            inner.addEventListener('animationend', hideAlert);
+        }
+        function hideAlert(_event) {
+            inner.parentElement.className = 'hidden';
+        }
+    </script>
 </div>
-<script>
-    var inner = document.getElementById('alert-inner');
-    inner.addEventListener('animationend', setHandler);
-    function setHandler() {
-        inner.removeEventListener('animationend', setHandler);
-        inner.addEventListener('animationend', hideAlert);
-    }
-    function hideAlert(_event) {
-        inner.parentElement.className = 'hidden';
-    }
-</script>
 {% else %}
 <div id="alert-element" class="hidden"></div>
 {% endif %}
